@@ -18,6 +18,6 @@ limitations under the License.
 
 == GraalVM for everyone
 
-Apache Geronimo Arthur is an effort to buil a thin layer on top of Oracle GraalVM to build native binaries from your Java programs.
+Apache Geronimo Arthur is an effort to build a thin layer on top of Oracle GraalVM to build native binaries from your Java programs.
 
 Learn more on our link:documentation.html[documentation].
