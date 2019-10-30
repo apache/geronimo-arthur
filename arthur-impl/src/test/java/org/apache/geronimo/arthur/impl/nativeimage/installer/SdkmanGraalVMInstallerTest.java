@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.geronimo.arthur.maven.installer;
+package org.apache.geronimo.arthur.impl.nativeimage.installer;
 
 import static java.util.stream.Collectors.joining;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,8 +40,9 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.maven.monitor.logging.DefaultLog;
-import org.codehaus.plexus.logging.console.ConsoleLogger;
+import org.apache.geronimo.arthur.impl.nativeimage.archive.Extractor;
+import org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstaller;
+import org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstallerConfiguration;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -147,14 +148,18 @@ class SdkmanGraalVMInstallerTest {
     private SdkmanGraalVMInstaller newInstaller(final Path workdir, final String platform, final String version,
                                                 final String baseUrl, final SpiedInstaller installer, final SpiedResolver resolver) {
         return new SdkmanGraalVMInstaller(
-                false, true,
-                baseUrl + "/broker/download/java/" + version + "/" + platform,
-                version, platform,
-                "org.apache.geronimo.arthur.cache:graal:" + ("cygwin".equals(platform) ? "zip" : "tar.gz") + ":" + platform + ':' + version,
-                workdir,
-                new DefaultLog(new ConsoleLogger()),
-                resolver::resolve,
-                installer::install);
+                SdkmanGraalVMInstallerConfiguration.builder()
+                .offline(false)
+                .inheritIO(true)
+                .url(baseUrl + "/broker/download/java/" + version + "/" + platform)
+                .version(version)
+                .platform(platform)
+                .gav("org.apache.geronimo.arthur.cache:graal:" + ("cygwin".equals(platform) ? "zip" : "tar.gz") + ":" + platform + ':' + version)
+                .workdir(workdir)
+                .resolver(resolver::resolve)
+                .installer(installer::install)
+                .extractor(new Extractor()::unpack)
+                .build());
     }
 
     public static class SpiedInstaller {

@@ -42,18 +42,18 @@ import javax.json.bind.config.PropertyOrderStrategy;
 
 import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
 import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageExecutor;
+import org.apache.geronimo.arthur.impl.nativeimage.archive.Extractor;
+import org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstaller;
+import org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstallerConfiguration;
 import org.apache.geronimo.arthur.maven.extension.MavenArthurExtension;
-import org.apache.geronimo.arthur.maven.installer.SdkmanGraalVMInstaller;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 import org.apache.xbean.finder.AnnotationFinder;
 import org.apache.xbean.finder.archive.CompositeArchive;
 import org.eclipse.aether.RepositorySystem;
@@ -364,16 +364,19 @@ public class NativeImageMojo extends ArthurMojo {
         final ArthurNativeImageConfiguration configuration = getConfiguration(classpathFiles);
         if (nativeImage == null) {
             final String graalPlatform = buildPlatform();
-            final SdkmanGraalVMInstaller graalInstaller = new SdkmanGraalVMInstaller(
-                    offline, inheritIO,
-                    buildDownloadUrl(graalPlatform),
-                    graalVersion,
-                    graalPlatform,
-                    buildCacheGav(graalPlatform),
-                    workdir.toPath(),
-                    getLog(),
-                    gav -> resolve(toArtifact(gav)).getFile().toPath(),
-                    (gav, file) -> install(file.toFile(), toArtifact(gav)));
+            final Extractor extractor = new Extractor();
+            final SdkmanGraalVMInstaller graalInstaller = new SdkmanGraalVMInstaller(SdkmanGraalVMInstallerConfiguration.builder()
+                    .offline(offline)
+                    .inheritIO(inheritIO)
+                    .url(buildDownloadUrl(graalPlatform))
+                    .version(graalVersion)
+                    .platform(graalPlatform)
+                    .gav(buildCacheGav(graalPlatform))
+                    .workdir(workdir.toPath())
+                    .resolver(gav -> resolve(toArtifact(gav)).getFile().toPath())
+                    .installer((gav, file) -> install(file.toFile(), toArtifact(gav)))
+                    .extractor(extractor::unpack)
+                    .build());
             final Path graalHome = graalInstaller.install();
             getLog().info("Using GRAAL: " + graalHome);
             configuration.setNativeImage(graalInstaller.installNativeImage().toAbsolutePath().toString());
@@ -447,8 +450,8 @@ public class NativeImageMojo extends ArthurMojo {
                 usePackagedArtifact ?
                         Stream.of(jar) :
                         Stream.concat(
-                            Stream.of(classes),
-                            supportTestArtifacts ? Stream.of(testClasses) : Stream.empty()),
+                                Stream.of(classes),
+                                supportTestArtifacts ? Stream.of(testClasses) : Stream.empty()),
                 project.getArtifacts().stream()
                         .filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId()))
                         .filter(this::handleTestInclusion)

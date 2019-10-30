@@ -77,6 +77,49 @@ try (final Jsonb jsonb = JsonbBuilder.create(new JsonbConfig()
 }
 ----
 
+== GraalVM Installer
+
+The implementation module also contains the building block to install GraalVM locally.
+It is based on `org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstaller`.
+The high level mecanism is to download it from an URL and cache it locally (archive + exploded folder).
+For that it needs an "extractor" implementation which supports `tar.gz` on linux and `zip` on windows/cygwin.
+You can use the provided `Extractor` class but then you need to add `commons-compress`:
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.apache.commons</groupId>
+  <artifactId>commons-compress</artifactId>
+  <version>1.19</version>
+</dependency>
+----
+
+Once done the usage is pretty straigh forward:
+
+[source,java]
+----
+final Path cache = Paths.get("cached-graal.tar.gz");
+final Path workdir = Paths.get(System.getProperty("java.io.tmpdir")).resolve("graal_work_dir");
+final SdkmanGraalVMInstallerConfiguration config = SdkmanGraalVMInstallerConfiguration.builder()
+    .offline(offline)
+    .inheritIO(inheritIO)
+    .url("https://api.sdkman.io/2/broker/download/java/19.2.1-grl/linux64")
+    .version("19.2.1")
+    .platform("linux64")
+    .gav("com.oracle.graal:graalvm:tar.gz:19.2.1")
+    .workdir(workdir)
+    // use built-in commons-compress based extractor, alternative you can do an exec of tar command if preferred
+    .extractor(new Extractor()::unpack)
+    // hardcoded cache
+    .resolver(gav -> cache)
+    .installer((gav, file) -> Files.copy(file, cache))
+    .build();
+final SdkmanGraalVMInstaller graalInstaller = new SdkmanGraalVMInstaller(config);
+final Path graalHome = graalInstaller.install();
+configuration.setNativeImage(graalInstaller.installNativeImage().toAbsolutePath().toString());
+----
+
+
 ---
 
 Previous: link:spi.html[Arthur SPI] Next: link:maven.html[Arthur Maven Plugin]
