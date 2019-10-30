@@ -67,8 +67,11 @@ import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
 
+/**
+ * Generates a native binary from current project.
+ */
 @Mojo(name = "native-image", defaultPhase = PACKAGE, requiresDependencyResolution = TEST, threadSafe = true)
-public class NativeImageMojo extends AbstractMojo {
+public class NativeImageMojo extends ArthurMojo {
     //
     // ArthurNativeImageConfiguration
     //
@@ -317,20 +320,24 @@ public class NativeImageMojo extends AbstractMojo {
     @Parameter(property = "arthur.supportedTypes", defaultValue = "jar,zip")
     private List<String> supportedTypes;
 
+    /**
+     * Should jar be used instead of exploded folder (target/classes).
+     * Note this option disable the support of module test classes.
+     */
+    @Parameter(property = "project.usePackagedArtifact", defaultValue = "false")
+    private boolean usePackagedArtifact;
+
     @Parameter(defaultValue = "${project.packaging}", readonly = true)
     private String packaging;
+
+    @Parameter(defaultValue = "${project.build.directory}/${project.build.finalName}.${project.packaging}")
+    private File jar;
 
     @Parameter(defaultValue = "${project.build.outputDirectory}")
     private File classes;
 
     @Parameter(defaultValue = "${project.build.testOutputDirectory}")
     private File testClasses;
-
-    @Parameter(defaultValue = "${settings.offline}", readonly = true)
-    private boolean offline;
-
-    @Parameter(defaultValue = "${project}", readonly = true)
-    private MavenProject project;
 
     @Parameter(defaultValue = "${repositorySystemSession}")
     protected RepositorySystemSession repositorySystemSession;
@@ -406,6 +413,10 @@ public class NativeImageMojo extends AbstractMojo {
         } finally {
             thread.setContextClassLoader(oldLoader);
         }
+
+        if (propertiesPrefix != null) {
+            project.getProperties().setProperty(propertiesPrefix + "binary.path", output);
+        }
     }
 
     private String buildCacheGav(final String graalPlatform) {
@@ -433,9 +444,11 @@ public class NativeImageMojo extends AbstractMojo {
 
     private Stream<File> findClasspathFiles() {
         return Stream.concat(Stream.concat(
-                Stream.concat(
-                        Stream.of(classes),
-                        supportTestArtifacts ? Stream.of(testClasses) : Stream.empty()),
+                usePackagedArtifact ?
+                        Stream.of(jar) :
+                        Stream.concat(
+                            Stream.of(classes),
+                            supportTestArtifacts ? Stream.of(testClasses) : Stream.empty()),
                 project.getArtifacts().stream()
                         .filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId()))
                         .filter(this::handleTestInclusion)

@@ -50,6 +50,7 @@
     <module>arthur-impl</module>
     <module>arthur-maven-plugin</module>
     <module>arthur-spi</module>
+    <module>documentation</module>
   </modules>
 
   <dependencies>
@@ -121,6 +122,8 @@
           <excludes>
             <exclude>**/*/MANIFEST.MF</exclude>
             <exclude>**/META-INF/services/*</exclude>
+            <exclude>**/crest-commands.txt</exclude>
+            <exclude>**/*.html</exclude>
           </excludes>
         </configuration>
         <executions>

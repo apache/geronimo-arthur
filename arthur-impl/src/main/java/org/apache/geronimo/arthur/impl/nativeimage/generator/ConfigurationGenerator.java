@@ -61,7 +61,7 @@ public class ConfigurationGenerator implements Runnable {
 
     @Override
     public void run() {
-        final DefautContext context = new DefautContext(classFinder);
+        final DefautContext context = new DefautContext(configuration, classFinder);
         for (final ArthurExtension extension : extensions) {
             log.debug("Executing {}", extension);
             context.setModified(false);
@@ -86,6 +86,7 @@ public class ConfigurationGenerator implements Runnable {
                     json, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 jsonSerializer.accept(context.getReflections(), writer);
             }
+            context.addReflectionConfigFile(json.toAbsolutePath().toString());
         }
         if (!context.getResources().isEmpty() || !context.getBundles().isEmpty()) {
             final ResourcesModel resourcesModel = new ResourcesModel();
@@ -102,6 +103,7 @@ public class ConfigurationGenerator implements Runnable {
                     json, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 jsonSerializer.accept(resourcesModel, writer);
             }
+            context.addResourcesConfigFile(json.toAbsolutePath().toString());
         }
         if (!context.getDynamicProxyModels().isEmpty()) {
             final Set<Collection<String>> proxies = context.getDynamicProxyModels().stream()
@@ -115,6 +117,7 @@ public class ConfigurationGenerator implements Runnable {
                     json, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 jsonSerializer.accept(proxies, writer);
             }
+            context.addDynamicProxiesConfigFile(json.toAbsolutePath().toString());
         }
     }
 

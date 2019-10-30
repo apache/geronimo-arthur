@@ -1,0 +1,58 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Arthur SPI
+
+Arthur SPI enables you to add custom logic to generate `native-image` configuration.
+
+== Dependencies
+
+[source,xml]
+----
+<dependency>
+  <groupId>${project.groupId}</groupId>
+  <artifactId>arthur-spi</artifactId>
+  <version>${project.version}</version>
+</dependency>
+----
+
+== Usage
+
+You must implement a `org.apache.geronimo.arthur.spi.ArthurExtension` and register it as a SPI (fully qualified name in `META-INF/services/org.apache.geronimo.arthur.spi.ArthurExtension`).
+This extension will have to implement `execute(Context)` method to register reflection, resource, ... metadata needed by `native-image` build.
+
+Here is an example:
+
+[source,java]
+----
+public class MyJaxbExtension implements ArthurExtension {
+
+    @Override
+    public void execute(final Context context) {
+        context.findAnnotatedClasses(XmlRootElement.class).stream()
+                .flatMap(clazz -> createReflectionModel(clazz))
+                .forEach(context::register);
+    }
+
+    // createReflectionModel() just instantiate a ClassReflectionModel instance
+}
+----
+
+TIP: you can use `context.finder()` to find classes based on some annotation.
+
+---
+
+Previous: link:api.html[Arthur API] Next: link:implementation.html[Arthur Implementation]

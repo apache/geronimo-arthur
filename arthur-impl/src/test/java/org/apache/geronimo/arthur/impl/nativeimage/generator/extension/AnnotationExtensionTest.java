@@ -34,6 +34,7 @@ import org.apache.geronimo.arthur.api.RegisterClass;
 import org.apache.geronimo.arthur.api.RegisterField;
 import org.apache.geronimo.arthur.api.RegisterMethod;
 import org.apache.geronimo.arthur.api.RegisterResource;
+import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
 import org.apache.geronimo.arthur.impl.nativeimage.generator.DefautContext;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
@@ -47,7 +48,7 @@ class AnnotationExtensionTest {
     void scan() throws Exception {
         final ClassesArchive archive = new ClassesArchive(AnnotationExtensionTest.class.getClasses());
         final AnnotationFinder finder = new AnnotationFinder(archive);
-        final DefautContext context = new DefautContext(finder::findAnnotatedClasses);
+        final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(), finder::findAnnotatedClasses);
         new AnnotationExtension().execute(context);
         try (final Jsonb jsonb = JsonbBuilder.create(
                 new JsonbConfig().withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {

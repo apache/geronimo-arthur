@@ -17,11 +17,13 @@
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
 import org.apache.geronimo.arthur.spi.ArthurExtension;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
@@ -32,6 +34,7 @@ import lombok.Data;
 
 @Data
 public class DefautContext implements ArthurExtension.Context {
+    private final ArthurNativeImageConfiguration configuration;
     private final Function<Class<? extends Annotation>, Collection<Class<?>>> finder;
     private final Collection<ClassReflectionModel> reflections = new HashSet<>();
     private final Collection<ResourceModel> resources = new HashSet<>();
@@ -69,5 +72,26 @@ public class DefautContext implements ArthurExtension.Context {
         if (dynamicProxyModels.add(dynamicProxyModel)) {
             modified = true;
         }
+    }
+
+    public void addReflectionConfigFile(final String path) {
+        if (configuration.getReflectionConfigurationFiles() == null) {
+            configuration.setReflectionConfigurationFiles(new ArrayList<>());
+        }
+        configuration.getReflectionConfigurationFiles().add(path);
+    }
+
+    public void addResourcesConfigFile(final String path) {
+        if (configuration.getResourcesConfigurationFiles() == null) {
+            configuration.setResourcesConfigurationFiles(new ArrayList<>());
+        }
+        configuration.getResourcesConfigurationFiles().add(path);
+    }
+
+    public void addDynamicProxiesConfigFile(final String path) {
+        if (configuration.getDynamicProxyConfigurationFiles() == null) {
+            configuration.setDynamicProxyConfigurationFiles(new ArrayList<>());
+        }
+        configuration.getDynamicProxyConfigurationFiles().add(path);
     }
 }

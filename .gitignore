@@ -1,5 +1,11 @@
+# Intellij Idea
 .idea
 *.iws
 *.iml
 *.ipr
+
+# Maven
 target
+
+# scm
+.site-content

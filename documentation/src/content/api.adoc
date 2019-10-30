@@ -1,0 +1,65 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Arthur API
+
+Arthur API enables you to mark in your code some Graal metainformation.
+Under the hood it just uses a meta-extension linked to this specific API.
+
+For more information about extensions, see link:spi.html[SPI] documentation.
+
+== Dependencies
+
+[source,xml]
+----
+<dependency>
+  <groupId>${project.groupId}</groupId>
+  <artifactId>arthur-api</artifactId>
+  <version>${project.version}</version>
+</dependency>
+----
+
+== Usage
+
+`@Register*` annotation enables to register reflection and resources on your classes directly.
+
+Example:
+
+[source,java]
+----
+@RegisterClass(all = true) <1>
+public class All {
+    private String name;
+
+    public All() {
+        // no-op
+    }
+
+    public All(final String name) {
+        this.name = name;
+    }
+
+    public boolean isAll() {
+        return true;
+    }
+}
+----
+
+<1> will register the public constructors, fields and methods as available in the native image.
+
+---
+
+Previous: link:documentation.html[Documentation] Next: link:spi.html[Arthur SPI]

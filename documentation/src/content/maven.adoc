@@ -1,0 +1,315 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Apache Geronimo Arthur Maven
+
+Arthur Maven plugin provides a way to generate `native-image` configuration and execute it.
+It also enables to automatically download GraalVM avoiding you to manage the installation part.
+
+== Get started in 5 minutes
+
+First thing to do to enable a native build of your application is to add the plugin with your application entry point (`main(String[])`):
+
+[source,xml]
+----
+<plugin>
+    <groupId>org.apache.geronimo.arthur</groupId>
+    <artifactId>arthur-maven-plugin</artifactId>
+    <version>${arthur.version}</version>
+    <configuration>
+        <main>org.kamelot.Florida</main> <1>
+    </configuration>
+</plugin>
+----
+
+<1> The application to compile natively
+
+Once it is done, you can run `mvn [process-classes] arthur:native-image`.
+
+== Graal Setup
+
+You probably notices that in previous part we didn't mention you need to set your `JAVA_HOME` to a Graal instance or so.
+This is because the plugin is able to download GraalVM if it is not already done and to install - using GraalVM `gu` tool - `native-image`extension.
+You will find all the details of that feature in the configuration section but it is important to note a few points:
+
+1. You can explicit the `native-image` instance to use and avoid the implicit installation setting the configuration `nativeImage`,
+2. GraalVM version is configurable (note that it relies on SDKMan by default so ensure the last version you want to upgrade immediately is available),
+3. The plugin caches the GraalVM archive and its unpack flavor in your local maven repository to avoid to download and explode it each time.
+
+== Execution example
+
+Here is a dump of a sample execution:
+
+[source]
+----
+$ mvn arthur:native-image -o
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< org.apache.geronimo.arthur:sample >---------------------
+[INFO] Building Arthur :: Sample 1.0.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- arthur-maven-plugin:1.0.0-SNAPSHOT:native-image (default-cli) @ jdbc ---
+[INFO] Using GRAAL: /home/rmannibucau/.m2/repository/org/apache/geronimo/arthur/cache/graal/19.2.1/distribution_exploded <1>
+[INFO] Extension org.apache.geronimo.arthur.maven.extension.MavenArthurExtension updated build context <2>
+[INFO] Creating resources model '/opt/dev/arthur/sample/target/arthur_workdir/generated_configuration/resources.arthur.json' <3>
+[INFO] Creating dynamic proxy model '/opt/dev/arthur/sample/target/arthur_workdir/generated_configuration/dynamicproxies.arthur.json' <3>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]    classlist:   6,427.14 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]        (cap):   2,126.93 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]        setup:   3,480.51 ms <4>
+ScriptEngineManager providers.next(): javax.script.ScriptEngineFactory: Provider com.oracle.truffle.js.scriptengine.GraalJSEngineFactory could not be instantiated
+ScriptEngineManager providers.next(): javax.script.ScriptEngineFactory: Provider com.oracle.truffle.js.scriptengine.GraalJSEngineFactory could not be instantiated
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]   (typeflow):  15,605.58 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]    (objects):  11,369.56 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]   (features):   1,901.64 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]     analysis:  30,057.86 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]     (clinit):     568.59 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]     universe:   1,196.02 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]      (parse):   2,334.15 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]     (inline):   3,093.09 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]    (compile):  20,410.16 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]      compile:  27,352.51 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]        image:   2,792.40 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]        write:     677.26 ms <4>
+/opt/dev/arthur/sample/target/sample.graal.bin:16697]      [total]:  72,280.13 ms <4>
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:14 min
+[INFO] Finished at: 2019-10-29T17:55:16+01:00
+[INFO] ------------------------------------------------------------------------
+
+----
+
+<1> The GraalVM distribution was already existing so was not download and was directly used,
+<2> Maven inline Graal configuration (resources, reflection, bundles) was set up,
+<3> Dynamic (Arthur prebuild phase) configuration was dumped before launching `native-image`,
+<4> `native-image` execution/phases
+
+== Native Image Mojo configuration
+
+The plugin is quite configurable and even enable to build a main in a test scope.
+Here is the full list of available configuration.
+
+include::{generated_dir}/generated_nativeimage_mojo.adoc[]
+
+== What about docker?
+
+One of the main reasons to go native is to reduce the startup latency and the memory consumption.
+This is literally a paraphrase to say we want to run into Kubernetes.
+Therefore the question to bundle the native binary as a docker image comes pretty quickly.
+
+=== Sample Dockerfile
+
+There are multiple option to create a docker image but one interesting point to mention is to build the binary in a docker image to ensure the target binary matches the target image architecture.
+For that case, we recommend you to build your project as you want, copy the project in a builder docker image and use a multi-stage builder to ensure you build on the platform you will run (the `FROM` of your `Dockerfile`).
+
+TIP: to avoid a lot of downloads/latency it can be neat to *not* bind `arthur:native-image` plugin goal to any phase and just call it explicitly in your build. To do that just use `<phase />` instead of an explicit phase if you define a custom execution.
+
+Here is an example:
+
+[source,Dockerfile]
+----
+FROM maven:3.6-jdk-8-slim AS builder
+COPY . /project
+COPY target/m2 /root/.m2/repository
+WORKDIR /project
+RUN mvn package arthur:native-image
+
+FROM scratch
+COPY --from=builder /project/target/myapp.graal.bin /project/myapp.graal.bin
+ENTRYPOINT [ "/project/myapp.graal.bin" ]
+----
+
+To avoid to download all needed dependencies all the time don't forget to prepare a local copy of the maven repository, here is how to launch this docker creation assuming you put this `Dockerfile` at the root of your maven project:
+
+[source,sh]
+----
+# prepare the local copy of the m2 with dependency plugin (for examples, some other plugins will also include build maven plugins in the dedicated m2)
+mvn dependency:copy-dependencies -Dmdep.useRepositoryLayout=true -DoutputDirectory=target/m2
+
+# actually build
+docker build -t sample:latest
+----
+
+TIP: you can also do the package on your machine and skip it in the docker build but the tip to prepare a local m2 copy is still helping to speed up the build.
+
+TIP: if you use private repositories, don't forget to copy your settings.xml as well (in `/root/.m2` for `maven`/builder image).
+
+IMPORTANT: when building on a jenkins running on Kubernetes, ensure to use a build image with an architecture compatible, this avoids all that setup and you can just run it directly as if it was locally.
+
+=== Jib to create an image
+
+Jib is an awesome project propulsed by Google enabling to build docker images without docker.
+It can be used to put your binary into a very light image (based on the "empty" `scratch` one). Here is how to add it to your pom:
+
+[source,xml]
+----
+<plugin> <1>
+    <groupId>com.google.cloud.tools</groupId>
+    <artifactId>jib-maven-plugin</artifactId>
+    <version>1.7.0</version>
+    <configuration>
+        <from>
+            <image>scratch</image> <2>
+        </from>
+        <to>
+            <image>sample:latest</image>
+        </to>
+        <extraDirectories>
+            <paths>
+                <path>${project.build.directory}/graal</path> <3>
+            </paths>
+            <permissions>
+                <permission> <4>
+                    <file>/sample.graal.bin</file>
+                    <mode>755</mode>
+                </permission>
+            </permissions>
+        </extraDirectories>
+        <container>
+            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+            <entrypoint>
+                <arg>/sample.graal.bin</arg> <5>
+            </entrypoint>
+        </container>
+    </configuration>
+</plugin>
+----
+
+<1> Add `jib-maven-plugin` in your `pom.xml`
+<2> Use `scratch` keyword as base image (which almost means "nothing" or "empty image")
+<3> Reference the folder containing your binary (you can desire to tune the `output`parameter of the `arthur-maven-plugin` to ensure the folder only contains your binary since the full folder will be added to the image)
+<4> Ensure the binary has the right permission (executable)
+<5> Set the binary as entrypoint
+
+Then you can create your docker image just launching: `mvn jib:dockerBuild`.
+
+TIP: you can also directly push to a remote repository without the need of having a local docker daemon, see Jib documentation for more details.
+
+IMPORTANT: in current jib version, the dependencies are build artifacts are still added to the image so you can have some "dead" code with that option.
+To avoid it you can switch to `arthur:docker` or `arthur:image`  goals.
+
+=== Arthur Docker
+
+`arthur-maven-plugin` enables to build a docker image with a plain binary built with `native-image`.
+Its usage is close to jib - with a simpler configuration - but it also can be combine with `native-image` goal:
+
+[source,bash]
+----
+mvn arthur:native-image arthur:docker
+----
+
+Output looks like:
+
+[source]
+----
+$ mvn arthur:native-image arthur:docker
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ---------------------< org.apache.geronimo.Arthur:sample >---------------------
+[INFO] Building Arthur :: Sample 1.0.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- arthur-maven-plugin:1.0.0-SNAPSHOT:native-image (default-cli) @ sample ---
+[INFO] Using GRAAL: /home/rmannibucau/.m2/repository/org/apache/geronimo/arthur/cache/graal/19.2.1/distribution_exploded
+[INFO] Extension org.apache.geronimo.arthur.maven.extension.MavenArthurExtension updated build context
+[INFO] Creating resources model '/media/data/home/rmannibucau/1_dev/connectors-se/jdbc/target/arthur_workdir/generated_configuration/resources.arthur.json'
+[INFO] Creating dynamic proxy model '/media/data/home/rmannibucau/1_dev/connectors-se/jdbc/target/arthur_workdir/generated_configuration/dynamicproxies.arthur.json'
+...same as before
+[INFO]
+[INFO] --- arthur-maven-plugin:1.0.0-SNAPSHOT:docker (default-cli) @ sample ---
+[INFO] Containerizing application with the following files:
+[INFO] 	Binary:
+[INFO] 		/opt/geronimo/arthur/sample/target/sample.graal.bin
+[INFO] Getting scratch base image...
+[INFO] Building Binary layer...
+[INFO]
+[INFO] Container entrypoint set to [/sample]
+[INFO] Container program arguments set to []
+[INFO] Loading to Docker daemon...
+[INFO] Built 'sample:1.0.0-SNAPSHOT'
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:29 min
+[INFO] Finished at: 2019-10-30T10:51:43+01:00
+[INFO] ------------------------------------------------------------------------
+----
+
+==== Configuration
+
+include::{generated_dir}/generated_docker_mojo.adoc[]
+
+=== Arthur Image
+
+Similarly to docker goal, the plugin can generate an image.
+To do it just replace the `arthur:docker` by `arthur:image`.
+
+TIP: this goal does *not* need a docker daemon on the machine, it just uses HTTP(S) communication with a registry.
+
+==== Configuration
+
+include::{generated_dir}/generated_image_mojo.adoc[]
+
+== Advanced example
+
+Just to give a real world configuration, here is how a simple JDBC application can be natified.
+It configure some resource bundle, setup h2 driver and exclude derby from the build classpath:
+
+[source,xml]
+----
+<plugin>
+    <groupId>org.apache.geronimo.arthur</groupId>
+    <artifactId>arthur-maven-plugin</artifactId>
+    <version>${arthur.version}</version>
+    <configuration>
+        <main>org.talend.components.jdbc.graalvm.MainTableNameInputEmitter</main>
+        <supportTestArtifacts>true</supportTestArtifacts> <!-- for demo only -->
+        <initializeAtBuildTime>
+            <initializeAtBuildTime>org.h2.Driver</initializeAtBuildTime>
+            <initializeAtBuildTime>org.company.MyProxyInterface1</initializeAtBuildTime>
+            <initializeAtBuildTime>org.company.MyProxyInterface2</initializeAtBuildTime>
+        </initializeAtBuildTime>
+        <bundles>
+            <bundle>
+                <name>org.company.MyProxyInterface1Messages</name>
+            </bundle>
+        </bundles>
+        <dynamicProxies>
+          <dynamicProxy> <!-- short notation -->
+              <classes>org.company.MyProxyInterface1</classes>
+          </dynamicProxy>
+          <dynamicProxy>
+              <classes> <!-- long notation -->
+                  <class>org.company.MyProxyInterface2</class>
+              </classes>
+          </dynamicProxy>
+        </dynamicProxies>
+        <excludedArtifacts> <!-- this setup uses supportTestArtifacts but we assume we don't want derby which is used in test dependencies -->
+            <excludedArtifact>org.apache.derby:derby</excludedArtifact>
+            <excludedArtifact>org.apache.derby:derbyclient</excludedArtifact>
+            <excludedArtifact>org.apache.derby:derbynet</excludedArtifact>
+        </excludedArtifacts>
+    </configuration>
+</plugin>
+----
+
+Then you can just run `mvn arthur:native-image arthur:docker` to get a ready to deploy image.
+
+---
+
+Previous: link:implementation.html[Arthur Implementation]
