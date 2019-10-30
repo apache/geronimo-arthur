@@ -21,6 +21,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Locale.ROOT;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static org.apache.maven.plugins.annotations.LifecyclePhase.PACKAGE;
 import static org.apache.maven.plugins.annotations.ResolutionScope.TEST;
 import static org.apache.xbean.finder.archive.ClasspathArchive.archive;
@@ -30,9 +31,13 @@ import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.json.bind.Jsonb;
@@ -51,6 +56,7 @@ import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -309,7 +315,16 @@ public class NativeImageMojo extends ArthurMojo {
     private List<String> excludedArtifacts;
 
     /**
-     * {@code <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>} list of artifacts appended to graal build.
+     * groupId:artifactId list of ignored artifact during the scanning phase.
+     * Compared to `excludedArtifacts`, it keeps the jar in the scanning/extension classloader
+     * but it does not enable to find any annotation in it.
+     * Note that putting `*` will disable the scanning completely.
+     */
+    @Parameter(property = "arthur.scanningExcludedArtifacts")
+    private List<String> scanningExcludedArtifacts;
+
+    /**
+     * `<groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>` list of artifacts appended to graal build.
      */
     @Parameter(property = "arthur.graalExtensions")
     private List<String> graalExtensions;
@@ -329,6 +344,15 @@ public class NativeImageMojo extends ArthurMojo {
 
     @Parameter(defaultValue = "${project.packaging}", readonly = true)
     private String packaging;
+
+    @Parameter(defaultValue = "${project.version}", readonly = true)
+    private String version;
+
+    @Parameter(defaultValue = "${project.artifactId}", readonly = true)
+    private String artifactId;
+
+    @Parameter(defaultValue = "${project.groupId}", readonly = true)
+    private String groupId;
 
     @Parameter(defaultValue = "${project.build.directory}/${project.build.finalName}.${project.packaging}")
     private File jar;
@@ -359,9 +383,9 @@ public class NativeImageMojo extends ArthurMojo {
             return;
         }
 
-        final List<File> classpathFiles = findClasspathFiles().collect(toList());
+        final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        final ArthurNativeImageConfiguration configuration = getConfiguration(classpathFiles);
+        final ArthurNativeImageConfiguration configuration = getConfiguration(classpathEntries.values());
         if (nativeImage == null) {
             final String graalPlatform = buildPlatform();
             final Extractor extractor = new Extractor();
@@ -382,9 +406,9 @@ public class NativeImageMojo extends ArthurMojo {
             configuration.setNativeImage(graalInstaller.installNativeImage().toAbsolutePath().toString());
         }
 
-        final URL[] urls = classpathFiles.stream().map(it -> {
+        final URL[] urls = classpathEntries.values().stream().map(it -> {
             try {
-                return it.toURI().toURL();
+                return it.toUri().toURL();
             } catch (final MalformedURLException e) {
                 throw new IllegalStateException(e);
             }
@@ -398,8 +422,17 @@ public class NativeImageMojo extends ArthurMojo {
                      .setProperty("johnzon.cdi.activated", false)
                      .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
             thread.setContextClassLoader(loader);
-            final AnnotationFinder finder = new AnnotationFinder(new CompositeArchive(Stream.of(urls)
-                    .map(it -> archive(loader, it))
+            final Predicate<Artifact> scanningFilter = createScanningFilter();
+            final AnnotationFinder finder = new AnnotationFinder(new CompositeArchive(classpathEntries.entrySet().stream()
+                    .filter(e -> scanningFilter.test(e.getKey()))
+                    .map(Map.Entry::getValue)
+                    .map(path -> {
+                        try {
+                            return archive(loader, path.toUri().toURL());
+                        } catch (final MalformedURLException e) { // unlikely
+                            throw new IllegalStateException(e);
+                        }
+                    })
                     .collect(toList())));
             MavenArthurExtension.with(
                     reflections, resources, bundles, dynamicProxies,
@@ -420,6 +453,19 @@ public class NativeImageMojo extends ArthurMojo {
         if (propertiesPrefix != null) {
             project.getProperties().setProperty(propertiesPrefix + "binary.path", output);
         }
+    }
+
+    private Predicate<Artifact> createScanningFilter() {
+        if (scanningExcludedArtifacts != null && scanningExcludedArtifacts.contains("*")) {
+            return a -> false;
+        }
+        if (scanningExcludedArtifacts == null || scanningExcludedArtifacts.isEmpty()) {
+            return a -> true;
+        }
+        return a -> {
+            final String coord = a.getGroupId() + ':' + a.getArtifactId();
+            return scanningExcludedArtifacts.stream().noneMatch(it -> it.equals(coord));
+        };
     }
 
     private String buildCacheGav(final String graalPlatform) {
@@ -445,21 +491,27 @@ public class NativeImageMojo extends ArthurMojo {
                 .toLowerCase(ROOT);
     }
 
-    private Stream<File> findClasspathFiles() {
+    private Stream<? extends Map.Entry<? extends Artifact, Path>> findClasspathFiles() {
+        final Artifact artifactGav = new org.apache.maven.artifact.DefaultArtifact(
+                groupId, artifactId, version, "compile", packaging, null, new DefaultArtifactHandler());
         return Stream.concat(Stream.concat(
                 usePackagedArtifact ?
-                        Stream.of(jar) :
+                        Stream.of(jar).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())) :
                         Stream.concat(
-                                Stream.of(classes),
-                                supportTestArtifacts ? Stream.of(testClasses) : Stream.empty()),
+                                Stream.of(classes).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())),
+                                supportTestArtifacts ? Stream.of(testClasses).<Map.Entry<Artifact, Path>>map(j ->
+                                        new AbstractMap.SimpleImmutableEntry<>(new org.apache.maven.artifact.DefaultArtifact(
+                                                groupId, artifactId, version, "compile", packaging, "test", new DefaultArtifactHandler()),
+                                                j.toPath())) :
+                                        Stream.empty()),
                 project.getArtifacts().stream()
                         .filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId()))
                         .filter(this::handleTestInclusion)
                         .filter(this::isNotSvm)
                         .filter(a -> supportedTypes.contains(a.getType()))
-                        .map(Artifact::getFile)),
+                        .map(a -> new AbstractMap.SimpleImmutableEntry<>(a, a.getFile().toPath()))),
                 resolveExtension())
-                .filter(File::exists);
+                .filter(e -> Files.exists(e.getValue()));
     }
 
     private boolean handleTestInclusion(final Artifact a) {
@@ -470,13 +522,20 @@ public class NativeImageMojo extends ArthurMojo {
         return !"com.oracle.substratevm".equals(artifact.getGroupId());
     }
 
-    private Stream<File> resolveExtension() {
+    private Stream<? extends Map.Entry<? extends Artifact, Path>> resolveExtension() {
         return ofNullable(graalExtensions)
                 .map(e -> e.stream()
                         .map(this::toArtifact)
-                        .map(this::resolve)
-                        .map(org.eclipse.aether.artifact.Artifact::getFile))
+                        .map(it -> new AbstractMap.SimpleImmutableEntry<>(
+                                toMavenArtifact(it),
+                                resolve(it).getFile().toPath())))
                 .orElseGet(Stream::empty);
+    }
+
+    private org.apache.maven.artifact.DefaultArtifact toMavenArtifact(final org.eclipse.aether.artifact.Artifact it) {
+        return new org.apache.maven.artifact.DefaultArtifact(
+                it.getGroupId(), it.getArtifactId(), it.getVersion(), "compile",
+                it.getExtension(), it.getClassifier(), new DefaultArtifactHandler());
     }
 
     private org.eclipse.aether.artifact.Artifact toArtifact(final String s) {
@@ -519,7 +578,7 @@ public class NativeImageMojo extends ArthurMojo {
         }
     }
 
-    private ArthurNativeImageConfiguration getConfiguration(final Collection<File> classpathFiles) {
+    private ArthurNativeImageConfiguration getConfiguration(final Collection<Path> classpathFiles) {
         final ArthurNativeImageConfiguration configuration = new ArthurNativeImageConfiguration();
         Stream.of(ArthurNativeImageConfiguration.class.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(ArthurNativeImageConfiguration.GraalCommandPart.class))
@@ -533,7 +592,7 @@ public class NativeImageMojo extends ArthurMojo {
                     }
                 });
         if (configuration.getClasspath() == null || configuration.getClasspath().isEmpty()) {
-            configuration.setClasspath(classpathFiles.stream().map(File::getAbsolutePath).collect(toList()));
+            configuration.setClasspath(classpathFiles.stream().map(Path::toAbsolutePath).map(Object::toString).collect(toList()));
         }
         configuration.setInheritIO(inheritIO);
         return configuration;
