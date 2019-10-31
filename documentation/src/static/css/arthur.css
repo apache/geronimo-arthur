@@ -29,3 +29,9 @@
 table > thead > tr > th {
   background-color: lightslategray;
 }
+.landing-images {
+  padding-bottom: 1.5rem;
+}
+.center-p > p {
+  text-align: center;
+}

@@ -20,4 +20,14 @@ limitations under the License.
 
 Apache Geronimo Arthur is an effort to build a thin layer on top of Oracle GraalVM to build native binaries from your Java programs.
 
+
+[role="landing-images text-center"]
+++++
+<div class="text-center landing-images">
+  <img src="image/arthur.png" style="50%" />
+  <img src="image/arthur_rock.png" style="50%" />
+</div>
+++++
+
+[role="center-p"]
 Learn more on our link:documentation.html[documentation].
