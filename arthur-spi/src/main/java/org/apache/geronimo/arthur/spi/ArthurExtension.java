@@ -55,5 +55,7 @@ public interface ArthurExtension {
         void register(ResourceBundleModel resourceModel);
 
         void register(DynamicProxyModel dynamicProxyModel);
+
+        <T> T unwrap(Class<T> type);
     }
 }

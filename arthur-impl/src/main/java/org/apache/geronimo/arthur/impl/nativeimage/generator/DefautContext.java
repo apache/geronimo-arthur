@@ -87,6 +87,17 @@ public class DefautContext implements ArthurExtension.Context {
         }
     }
 
+    @Override
+    public <T> T unwrap(final Class<T> type) {
+        if (ArthurNativeImageConfiguration.class == type) {
+            return type.cast(configuration);
+        }
+        if (type.isInstance(this)) {
+            return type.cast(this);
+        }
+        throw new IllegalArgumentException("Unsupported unwrapping: " + type);
+    }
+
     public void addReflectionConfigFile(final String path) {
         if (configuration.getReflectionConfigurationFiles() == null) {
             configuration.setReflectionConfigurationFiles(new ArrayList<>());
