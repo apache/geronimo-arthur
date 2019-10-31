@@ -144,6 +144,7 @@
             <exclude>**/META-INF/services/*</exclude>
             <exclude>**/crest-commands.txt</exclude>
             <exclude>**/*.html</exclude>
+            <exclude>**/favicon/*</exclude>
           </excludes>
         </configuration>
         <executions>
