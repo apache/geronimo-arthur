@@ -17,6 +17,7 @@
 package org.apache.geronimo.arthur.spi;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.Collection;
 
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
@@ -42,6 +43,10 @@ public interface ArthurExtension {
 
     interface Context {
         <T extends Annotation> Collection<Class<?>> findAnnotatedClasses(Class<T> annotation);
+
+        <T extends Annotation> Collection<Method> findAnnotatedMethods(Class<T> annotation);
+
+        <T> Collection<Class<? extends T>> findImplementations(Class<T> parent);
 
         void register(ClassReflectionModel classReflectionModel);
 

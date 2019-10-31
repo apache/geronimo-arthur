@@ -20,6 +20,7 @@ import static java.util.Optional.ofNullable;
 
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -48,7 +49,8 @@ public class ArthurNativeImageExecutor implements Runnable {
                 ServiceLoader.load(
                         ArthurExtension.class,
                         ofNullable(ArthurNativeImageExecutor.class.getClassLoader()).orElseGet(ClassLoader::getSystemClassLoader)),
-                configuration.configuration, configuration.workingDirectory, configuration.jsonSerializer, configuration.finder);
+                configuration.configuration, configuration.workingDirectory, configuration.jsonSerializer,
+                configuration.annotatedClassFinder, configuration.annotatedMethodFinder, configuration.implementationFinder);
         configurationGenerator.run();
 
         final List<String> command = new CommandGenerator().generate(configuration.configuration);
@@ -62,7 +64,9 @@ public class ArthurNativeImageExecutor implements Runnable {
     public static class ExecutorConfiguration {
         private final BiConsumer<Object, Writer> jsonSerializer;
         private final Path workingDirectory;
-        private final Function<Class<? extends Annotation>, Collection<Class<?>>> finder;
+        private final Function<Class<? extends Annotation>, Collection<Class<?>>> annotatedClassFinder;
+        private final Function<Class<? extends Annotation>, Collection<Method>> annotatedMethodFinder;
+        private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
         private final ArthurNativeImageConfiguration configuration;
     }
 }

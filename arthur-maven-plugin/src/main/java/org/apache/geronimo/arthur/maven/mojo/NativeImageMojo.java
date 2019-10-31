@@ -34,9 +34,11 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -434,12 +436,29 @@ public class NativeImageMojo extends ArthurMojo {
                         }
                     })
                     .collect(toList())));
+            final AtomicBoolean finderLinked = new AtomicBoolean();
             MavenArthurExtension.with(
                     reflections, resources, bundles, dynamicProxies,
                     () -> new ArthurNativeImageExecutor(
                             ArthurNativeImageExecutor.ExecutorConfiguration.builder()
                                     .jsonSerializer(jsonb::toJson)
-                                    .finder(finder::findAnnotatedClasses)
+                                    .annotatedClassFinder(finder::findAnnotatedClasses)
+                                    .annotatedMethodFinder(finder::findAnnotatedMethods)
+                                    .implementationFinder(p -> {
+                                        if (finderLinked.compareAndSet(false, true)) {
+                                            finder.enableFindImplementations().enableFindSubclasses();
+                                        }
+                                        final Class parent = Class.class.cast(p);
+                                        final List<Class<?>> implementations = finder.findImplementations(parent);
+                                        final List<Class<?>> subclasses = finder.findSubclasses(parent);
+                                        if (implementations.size() + subclasses.size() == 0) {
+                                            return implementations; // empty
+                                        }
+                                        final List<Class<?>> output = new ArrayList<>(implementations.size() + subclasses.size());
+                                        output.addAll(implementations);
+                                        output.addAll(subclasses);
+                                        return output;
+                                    })
                                     .configuration(configuration)
                                     .workingDirectory(workdir.toPath().resolve("generated_configuration"))
                                     .build())

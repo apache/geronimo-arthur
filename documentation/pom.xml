@@ -54,7 +54,7 @@
       <exclusions>
         <exclusion>
           <groupId>org.apache.xbean</groupId>
-          <artifactId>xbean-asm5-shaded</artifactId>
+          <artifactId>xbean-asm7-shaded</artifactId>
         </exclusion>
         <exclusion>
           <groupId>org.apache.xbean</groupId>
@@ -66,6 +66,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.asciidoctor</groupId>
@@ -80,7 +81,7 @@
     <dependency>
       <groupId>org.jruby</groupId>
       <artifactId>jruby-complete</artifactId>
-      <version>9.2.8.0</version>
+      <version>9.2.9.0</version>
     </dependency>
   </dependencies>
 

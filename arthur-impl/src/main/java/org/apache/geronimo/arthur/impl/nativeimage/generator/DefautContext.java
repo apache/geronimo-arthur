@@ -17,6 +17,7 @@
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,7 +36,9 @@ import lombok.Data;
 @Data
 public class DefautContext implements ArthurExtension.Context {
     private final ArthurNativeImageConfiguration configuration;
-    private final Function<Class<? extends Annotation>, Collection<Class<?>>> finder;
+    private final Function<Class<? extends Annotation>, Collection<Class<?>>> annotatedClassesFinder;
+    private final Function<Class<? extends Annotation>, Collection<Method>> methodFinder;
+    private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
     private final Collection<ClassReflectionModel> reflections = new HashSet<>();
     private final Collection<ResourceModel> resources = new HashSet<>();
     private final Collection<ResourceBundleModel> bundles = new HashSet<>();
@@ -44,7 +47,17 @@ public class DefautContext implements ArthurExtension.Context {
 
     @Override
     public <T extends Annotation> Collection<Class<?>> findAnnotatedClasses(final Class<T> annotation) {
-        return finder.apply(annotation);
+        return annotatedClassesFinder.apply(annotation);
+    }
+
+    @Override
+    public <T extends Annotation> Collection<Method> findAnnotatedMethods(final Class<T> annotation) {
+        return methodFinder.apply(annotation);
+    }
+
+    @Override
+    public <T> Collection<Class<? extends T>> findImplementations(final Class<T> parent) {
+        return Collection.class.cast(implementationFinder.apply(parent));
     }
 
     @Override

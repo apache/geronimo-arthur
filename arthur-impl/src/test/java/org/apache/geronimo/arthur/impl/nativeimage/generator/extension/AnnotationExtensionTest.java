@@ -23,7 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
@@ -48,7 +50,10 @@ class AnnotationExtensionTest {
     void scan() throws Exception {
         final ClassesArchive archive = new ClassesArchive(AnnotationExtensionTest.class.getClasses());
         final AnnotationFinder finder = new AnnotationFinder(archive);
-        final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(), finder::findAnnotatedClasses);
+        final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(),
+                finder::findAnnotatedClasses,
+                finder::findAnnotatedMethods,
+                p -> Collection.class.cast(finder.findImplementations(p)));
         new AnnotationExtension().execute(context);
         try (final Jsonb jsonb = JsonbBuilder.create(
                 new JsonbConfig().withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {

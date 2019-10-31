@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toSet;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -48,20 +49,26 @@ public class ConfigurationGenerator implements Runnable {
     private final Path workingDirectory;
     private final BiConsumer<Object, Writer> jsonSerializer;
     private final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder;
+    private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
+    private final Function<Class<? extends Annotation>, Collection<Method>> methodFinder;
 
     public ConfigurationGenerator(final Iterable<ArthurExtension> extensions, final ArthurNativeImageConfiguration configuration,
                                   final Path workingDirectory, final BiConsumer<Object, Writer> jsonSerializer,
-                                  final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder) {
+                                  final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder,
+                                  final Function<Class<? extends Annotation>, Collection<Method>> methodFinder,
+                                  final Function<Class<?>, Collection<Class<?>>> implementationFinder) {
         this.extensions = StreamSupport.stream(extensions.spliterator(), false).collect(toList());
         this.configuration = configuration;
         this.workingDirectory = workingDirectory;
         this.jsonSerializer = jsonSerializer;
         this.classFinder = classFinder;
+        this.methodFinder = methodFinder;
+        this.implementationFinder = implementationFinder;
     }
 
     @Override
     public void run() {
-        final DefautContext context = new DefautContext(configuration, classFinder);
+        final DefautContext context = new DefautContext(configuration, classFinder, methodFinder, implementationFinder);
         for (final ArthurExtension extension : extensions) {
             log.debug("Executing {}", extension);
             context.setModified(false);

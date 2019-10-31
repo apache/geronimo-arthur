@@ -62,10 +62,13 @@ try (final Jsonb jsonb = JsonbBuilder.create(new JsonbConfig()
              .setProperty("johnzon.cdi.activated", false)
              .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
     final AnnotationFinder finder = new AnnotationFinder(createScannedArchive());
+    // finder.link() if you want to use findImplementations()
     new ArthurNativeImageExecutor(
         ArthurNativeImageExecutor.ExecutorConfiguration.builder()
                 .jsonSerializer(jsonb::toJson)
-                .finder(finder::findAnnotatedClasses)
+                .annotatedClassFinder(finder::findAnnotatedClasses)
+                .annotatedMethodFinder(finder::findAnnotatedMethods)
+                .implementationFinder(p -> Collection.class.cast(finder.findImplementations(p)))
                 .configuration(configuration)
                 .workingDirectory(workdir.toPath().resolve("generated_configuration"))
                 .build())
