@@ -24,7 +24,8 @@ More on our website: https://geronimo.apache.org/arthur/.
 
 [source,bash]
 ----
-mvn clean install
+# if you don't have docker, skip integration-tests profile
+mvn clean install -Pintegration-tests
 ----
 
 TIP: for now the project uses lombok, ensure it is installed in your IDE if you need it.

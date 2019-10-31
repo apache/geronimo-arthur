@@ -28,7 +28,6 @@ import java.util.ServiceLoader;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import com.sun.org.apache.bcel.internal.util.ClassLoader;
 import org.apache.geronimo.arthur.impl.nativeimage.generator.ConfigurationGenerator;
 import org.apache.geronimo.arthur.impl.nativeimage.graal.CommandGenerator;
 import org.apache.geronimo.arthur.impl.nativeimage.process.ProcessExecutor;

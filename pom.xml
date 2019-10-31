@@ -53,6 +53,15 @@
     <module>documentation</module>
   </modules>
 
+  <profiles>
+    <profile>
+      <id>integration-tests</id>
+      <modules>
+        <module>integration-test</module>
+      </modules>
+    </profile>
+  </profiles>
+
   <dependencies>
     <dependency>
       <groupId>org.projectlombok</groupId>
