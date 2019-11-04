@@ -120,7 +120,8 @@ public class Generate {
         final Options adocOptions = OptionsBuilder.options()
                 .safe(UNSAFE) // we generated_dir is not safe but locally it is ok
                 .attributes(AttributesBuilder.attributes()
-                    .attribute("icons", "font")
+                    .showTitle(true)
+                    .icons("font")
                     .attribute("generated_dir", workdir.toAbsolutePath().toString()))
                 .get();
 

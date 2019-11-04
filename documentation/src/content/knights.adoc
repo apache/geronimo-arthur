@@ -16,7 +16,8 @@ limitations under the License.
 ////
 = Arthur Knights
 
-Knight is the name given to Arthur extensions. The extensions are generally responsible to generate a valid configuration to let a library become native.
+Knight is the name given to Arthur extensions.
+The extensions are generally responsible to generate a valid configuration to let a library become native.
 
 == Available knights
 

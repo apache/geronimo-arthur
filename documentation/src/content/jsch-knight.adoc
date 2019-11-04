@@ -17,7 +17,7 @@ limitations under the License.
 = Arthur JSch Knights
 
 Arthur JSch knight is responsible to support JSch.
-It preconfigure the reflection and enforce the security support of the native-image.
+It preconfigures the reflection and enforce the security support of the native-image.
 
 == Coordinates
 
