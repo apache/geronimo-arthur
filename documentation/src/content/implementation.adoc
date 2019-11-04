@@ -23,9 +23,9 @@ Arthur implementation provides `org.apache.geronimo.arthur.impl.nativeimage.Arth
 [source,xml]
 ----
 <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>org.apache.geronimo.arthur</groupId>
   <artifactId>arthur-impl</artifactId>
-  <version>${project.version}</version>
+  <version>${arthur.version}</version>
 </dependency>
 ----
 

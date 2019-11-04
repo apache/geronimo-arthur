@@ -5,7 +5,7 @@
 *.ipr
 
 # Maven
-target
+**/target/**
 
 # scm
 .site-content

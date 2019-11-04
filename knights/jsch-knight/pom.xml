@@ -21,58 +21,38 @@
             http://maven.apache.org/POM/4.0.0
             http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>arthur</artifactId>
-    <groupId>org.apache.geronimo.arthur</groupId>
+    <groupId>org.apache.geronimo.arthur.knights</groupId>
+    <artifactId>knights</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>integration-test</artifactId>
-  <name>Arthur :: Integration Tests</name>
+  <artifactId>jsch-knight</artifactId>
+  <name>Arthur :: Knights :: JSch</name>
+
+  <properties>
+    <geronimo-arthur.shortname>knight.jsch</geronimo-arthur.shortname>
+  </properties>
 
   <dependencies>
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>1.12.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <scope>test</scope>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.tomee</groupId>
-      <artifactId>ziplock</artifactId>
-      <version>${ziplock.version}</version>
-      <scope>test</scope>
+      <groupId>org.apache.geronimo.arthur</groupId>
+      <artifactId>arthur-spi</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.geronimo.arthur</groupId>
+      <artifactId>arthur-impl</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.sshd</groupId>
-      <artifactId>sshd-core</artifactId>
-      <version>2.3.0</version>
+      <groupId>com.jcraft</groupId>
+      <artifactId>jsch</artifactId>
+      <version>${jsch.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <testResources>
-      <testResource>
-        <directory>src/test/resources</directory>
-        <filtering>true</filtering>
-      </testResource>
-    </testResources>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <arthur.m2.repository>${settings.localRepository}</arthur.m2.repository>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

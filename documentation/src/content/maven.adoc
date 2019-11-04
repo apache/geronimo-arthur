@@ -312,4 +312,4 @@ Then you can just run `mvn arthur:native-image arthur:docker` to get a ready to 
 
 ---
 
-Previous: link:implementation.html[Arthur Implementation]
+Previous: link:implementation.html[Arthur Implementation] Next: link:knights.adoc[Knights]

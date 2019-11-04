@@ -22,6 +22,7 @@ Arthur project is composed of multiple module:
 - link:spi.html[SPI]: it contains the extension API intended to be used by libraries or integrators to simplify the graal-ification of a coding pattern or framework coding style,
 - link:implementation.html[Implementation]: it does the orchestration of the extensions execution before the `native-image` command line generation and execution,
 - link:maven.html[Maven Plugin]: it wraps the Implementation in a Maven Plugin and provides Docker helper mojos.
+- link:knights.html[Knights]: knight are modules providing Arthur extensions.
 
 ---
 

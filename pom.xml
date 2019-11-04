@@ -38,8 +38,19 @@
   <url>http://geronimo.apache.org/arthur/</url>
 
   <properties>
+    <!-- main deps -->
     <slf4j.version>1.7.28</slf4j.version>
+    <ziplock.version>8.0.0</ziplock.version>
 
+    <!-- knights -->
+    <jsch.version>0.1.55</jsch.version>
+
+    <!-- plugin versions/confs -->
+    <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+
+    <!-- jar vars -->
     <geronimo-arthur.shortname>${project.artifactId}</geronimo-arthur.shortname>
     <geronimo-arthur.Automatic-Module-Name>${project.groupId}.${geronimo-arthur.shortname}
     </geronimo-arthur.Automatic-Module-Name>
@@ -51,6 +62,7 @@
     <module>arthur-maven-plugin</module>
     <module>arthur-spi</module>
     <module>documentation</module>
+    <module>knights</module>
   </modules>
 
   <profiles>
@@ -80,6 +92,17 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.apache.tomee</groupId>
+        <artifactId>ziplock</artifactId>
+        <version>${ziplock.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>*</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
@@ -125,10 +148,8 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>${maven-compiler-plugin.version}</version>
         <configuration>
-          <source>8</source>
-          <target>8</target>
           <encoding>UTF-8</encoding>
           <showDeprecation>true</showDeprecation>
           <showWarnings>true</showWarnings>

@@ -16,6 +16,7 @@
  */
 package org.apache.geronimo.arthur.maven.mojo;
 
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -23,10 +24,15 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import com.google.cloud.tools.jib.api.AbsoluteUnixPath;
@@ -100,7 +107,7 @@ public abstract class JibMojo extends ArthurMojo {
      * Entry point to use.
      */
     @Parameter(property = "arthur.entrypoint", defaultValue = "/${project.artifactId}")
-    private String entrypoint;
+    private List<String> entrypoint;
 
     /**
      * Where is the binary to include. It defaults on native-image output if done before in the same execution
@@ -149,6 +156,32 @@ public abstract class JibMojo extends ArthurMojo {
      */
     @Parameter(property = "arthur.to", defaultValue = "${project.artifactId}:${project.version}")
     protected String to;
+
+    /**
+     * Should JVM native libraries be included, it is useful to get libraries like sunec (security).
+     * Value can be `false` to disable it (empty or null works too), `true` to include them all
+     * or a list of lib names like `sunec`.
+     */
+    @Parameter(property = "arthur.includeNatives", defaultValue = "false")
+    protected List<String> includeNatives;
+
+    /**
+     * When includeNatives, the directory which will contain the natives in the image.
+     */
+    @Parameter(property = "arthur.nativeRootDir", defaultValue = "/native")
+    protected String nativeRootDir;
+
+    /**
+     * Should cacerts be included.
+     */
+    @Parameter(property = "arthur.includeCacerts", defaultValue = "false")
+    protected boolean includeCacerts;
+
+    /**
+     * When includeCacerts, the file which will contain the certificates in the image.
+     */
+    @Parameter(property = "arthur.cacertsDir", defaultValue = "/certificates/cacerts")
+    protected String cacertsTarget;
 
     protected abstract Containerizer createContainer() throws InvalidImageReferenceException;
 
@@ -243,21 +276,34 @@ public abstract class JibMojo extends ArthurMojo {
                 from.setProgramArguments(programArguments);
             }
             from.setCreationTime(creationTimestamp < 0 ? Instant.now() : Instant.ofEpochMilli(creationTimestamp));
-            from.setEntrypoint(entrypoint);
+
+            final boolean hasNatives = includeNatives != null && !includeNatives.isEmpty() && !singletonList("false").equals(includeNatives);
+            if (entrypoint == null || entrypoint.size() < 1) {
+                throw new IllegalArgumentException("No entrypoint set");
+            }
+            from.setEntrypoint(Stream.concat(Stream.concat(
+                    entrypoint.stream(),
+                    hasNatives ? Stream.of("-Djava.library.path=" + nativeRootDir) : Stream.empty()),
+                    includeCacerts ? Stream.of("-Djavax.net.ssl.trustStore=" + cacertsTarget) : Stream.empty())
+                    .collect(toList()));
 
             final Path source = ofNullable(binarySource)
                     .map(File::toPath)
                     .orElseGet(() -> Paths.get(requireNonNull(
                             project.getProperties().getProperty(propertiesPrefix + "binary.path"),
                             "No binary path found, ensure to run native-image before or set entrypoint")));
-            from.setLayers(Stream.concat(
+            from.setLayers(Stream.concat(Stream.concat(Stream.concat(
+                    includeCacerts ?
+                            Stream.of(findCertificates()) : Stream.empty(),
+                    hasNatives ?
+                            Stream.of(findNatives()) : Stream.empty()),
                     otherFiles != null && !otherFiles.isEmpty() ?
                             Stream.of(createOthersLayer()) :
-                            Stream.empty(),
+                            Stream.empty()),
                     Stream.of(LayerConfiguration.builder()
                             .setName("Binary")
                             .addEntry(new LayerEntry(
-                                    source, AbsoluteUnixPath.get(entrypoint), FilePermissions.fromOctalString("755"),
+                                    source, AbsoluteUnixPath.get(entrypoint.iterator().next()), FilePermissions.fromOctalString("755"),
                                     getTimestamp(source)))
                             .build()))
                     .collect(toList()));
@@ -266,6 +312,67 @@ public abstract class JibMojo extends ArthurMojo {
         } catch (final InvalidImageReferenceException | IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private Path findHome() {
+        if (nativeImage == null) {
+            return createInstaller().install();
+        }
+        return Paths.get(nativeImage).getParent().getParent();
+    }
+
+    private LayerConfiguration findCertificates() {
+        final Path home = findHome();
+        getLog().info("Using certificates from '" + home + "'");
+        final Path cacerts = home.resolve("jre/lib/security/cacerts");
+        if (!Files.exists(cacerts)) {
+            throw new IllegalArgumentException("Missing cacerts in '" + home + "'");
+        }
+        return LayerConfiguration.builder()
+                .setName("Certificates")
+                .addEntry(cacerts, AbsoluteUnixPath.get(cacertsTarget))
+                .build();
+    }
+
+    private LayerConfiguration findNatives() {
+        final Path home = findHome();
+        getLog().info("Using natives from '" + home + "'");
+        final Path jreLib = home.resolve("jre/lib");
+        final boolean isWin = Files.exists(jreLib.resolve("java.lib"));
+        final Path nativeFolder = isWin ?
+                jreLib /* win/cygwin */ :
+                jreLib.resolve(System.getProperty("os.arch", "amd64"));
+        if (!Files.exists(nativeFolder)) {
+            throw new IllegalArgumentException("No native folder '" + nativeFolder + "' found.");
+        }
+        final boolean includeAll = singletonList("true").equals(includeNatives) || singletonList("*").equals(includeNatives);
+        final Predicate<Path> include = includeAll ?
+                p -> true : path -> {
+            final String name = path.getFileName().toString();
+            return includeNatives.stream().anyMatch(n -> name.contains(isWin ? (n + ".lib") : ("lib" + n + ".so")));
+        };
+        final LayerConfiguration.Builder builder = LayerConfiguration.builder();
+        final Collection<String> collected = new ArrayList<>();
+        try {
+            Files.walkFileTree(nativeFolder, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+                    if (include.test(file)) {
+                        collected.add(file.getFileName().toString());
+                        builder.addEntry(
+                                file, AbsoluteUnixPath.get(nativeRootDir).resolve(nativeFolder.relativize(file).toString()),
+                                FilePermissions.DEFAULT_FILE_PERMISSIONS, getTimestamp(file));
+                    }
+                    return super.visitFile(file, attrs);
+                }
+            });
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
+        if (!includeAll && collected.size() != includeNatives.size()) {
+            throw new IllegalArgumentException("Found " + collected + " but was configured to extract " + includeNatives);
+        }
+        return builder.setName("Natives").build();
     }
 
     private Instant getTimestamp(final Path source) throws IOException {

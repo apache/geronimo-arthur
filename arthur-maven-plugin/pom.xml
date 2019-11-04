@@ -67,6 +67,10 @@
       <artifactId>arthur-impl</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.tomee</groupId>
+      <artifactId>ziplock</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.cloud.tools</groupId>

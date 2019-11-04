@@ -145,4 +145,9 @@ public class AnnotationExtension implements ArthurExtension {
 
         return model;
     }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return obj != null && AnnotationExtension.class == obj.getClass();
+    }
 }

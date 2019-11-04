@@ -23,9 +23,9 @@ Arthur SPI enables you to add custom logic to generate `native-image` configurat
 [source,xml]
 ----
 <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>org.apache.geronimo.arthur</groupId>
   <artifactId>arthur-spi</artifactId>
-  <version>${project.version}</version>
+  <version>${arthur.version}</version>
 </dependency>
 ----
 

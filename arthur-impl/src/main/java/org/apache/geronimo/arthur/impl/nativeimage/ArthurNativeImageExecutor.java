@@ -45,9 +45,7 @@ public class ArthurNativeImageExecutor implements Runnable {
     @Override
     public void run() {
         final ConfigurationGenerator configurationGenerator = new ConfigurationGenerator(
-                ServiceLoader.load(
-                        ArthurExtension.class,
-                        ofNullable(ArthurNativeImageExecutor.class.getClassLoader()).orElseGet(ClassLoader::getSystemClassLoader)),
+                loadExtensions(),
                 configuration.configuration, configuration.workingDirectory, configuration.jsonSerializer,
                 configuration.annotatedClassFinder, configuration.annotatedMethodFinder, configuration.implementationFinder);
         configurationGenerator.run();
@@ -57,6 +55,13 @@ public class ArthurNativeImageExecutor implements Runnable {
                 configuration.configuration.isInheritIO(),
                 command)
                 .run();
+    }
+
+    protected Iterable<ArthurExtension> loadExtensions() {
+        return ServiceLoader.load(
+                ArthurExtension.class,
+                ofNullable(Thread.currentThread().getContextClassLoader())
+                        .orElseGet(ClassLoader::getSystemClassLoader));
     }
 
     @Builder

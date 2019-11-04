@@ -1,0 +1,51 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Arthur Knights
+
+Knight is the name given to Arthur extensions. The extensions are generally responsible to generate a valid configuration to let a library become native.
+
+== Available knights
+
+- link:jsch-knight.html[JSch]: it contains some end user API integrated with built-in extensions to simplify application graal-ification,
+
+== Configure a Knight in Arthur Maven plugin
+
+A knight can is typically configured in `graalExtensions`, it can used the long notation but also a shortcut notation since all Knights respect the same convention.
+
+Typically the following knight:
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.apache.geronimo.arthur.knights</groupId>
+  <artifactId>jsch-knight</artifactId>
+  <version>${arthur.version}</version>
+</dependency>
+----
+
+Can just be referenced as `jsch` in the Arthur Maven plugin:
+
+[source,xml]
+----
+<graalExtensions>
+  <graalExtension>jsch</graalExtension>
+</graalExtensions>
+----
+
+---
+
+Previous: link:maven.html[Index]

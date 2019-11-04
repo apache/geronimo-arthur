@@ -28,9 +28,17 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>${project.groupId}</groupId>
-  <artifactId>cuilliere</artifactId>
+  <artifactId>jsch</artifactId>
   <version>${project.version}</version>
-  <name>Arthur :: Integration Tests :: Cuilliere</name>
+  <name>Arthur :: Integration Tests :: JSch</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.jcraft</groupId>
+      <artifactId>jsch</artifactId>
+      <version>${jsch.version}</version>
+    </dependency>
+  </dependencies>
 
   <build>
     <plugins>
@@ -48,7 +56,16 @@
         <artifactId>arthur-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <main>org.apache.geronimo.arthur.integrationtests.Cuillere</main>
+          <main>org.apache.geronimo.arthur.integrationtests.JschMain</main>
+          <graalExtensions>
+            <graalExtension>jsch</graalExtension>
+          </graalExtensions>
+          <!-- in a docker packaging we need that, in this test we don't run arthur:docker/image so no need
+          <includeNatives>
+            <includeNative>sunec</includeNative>
+          </includeNatives>
+          <includeCacerts>true</includeCacerts>
+          -->
           <!-- avoid to conflict with host cache since we mount the local m2 to speed up the execution -->
           <graalCacheGav>org.apache.geronimo.arthur.cache:graal-integrationtests</graalCacheGav>
         </configuration>

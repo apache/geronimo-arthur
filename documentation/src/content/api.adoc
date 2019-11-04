@@ -26,9 +26,9 @@ For more information about extensions, see link:spi.html[SPI] documentation.
 [source,xml]
 ----
 <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>org.apache.geronimo.arthur</groupId>
   <artifactId>arthur-api</artifactId>
-  <version>${project.version}</version>
+  <version>${arthur.version}</version>
 </dependency>
 ----
 

@@ -56,6 +56,12 @@ public interface ArthurExtension {
 
         void register(DynamicProxyModel dynamicProxyModel);
 
+        void enableAllSecurityServices();
+
+        void enableAllCharsets();
+
+        void initializeAtBuildTime(String... classes);
+
         <T> T unwrap(Class<T> type);
     }
 }

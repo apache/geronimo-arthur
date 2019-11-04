@@ -54,6 +54,11 @@ public class MavenArthurExtension implements ArthurExtension {
         }
     }
 
+    @Override
+    public boolean equals(final Object obj) {
+        return obj != null && MavenArthurExtension.class == obj.getClass();
+    }
+
     public static void with(final Collection<ClassReflectionModel> reflections,
                             final Collection<ResourceModel> resources,
                             final Collection<ResourceBundleModel> bundles,

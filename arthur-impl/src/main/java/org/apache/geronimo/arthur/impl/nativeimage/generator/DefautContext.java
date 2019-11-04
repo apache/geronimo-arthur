@@ -16,6 +16,8 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
+import static java.util.Arrays.asList;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -85,6 +87,24 @@ public class DefautContext implements ArthurExtension.Context {
         if (dynamicProxyModels.add(dynamicProxyModel)) {
             modified = true;
         }
+    }
+
+    @Override
+    public void enableAllSecurityServices() {
+        configuration.setEnableAllSecurityServices(true);
+    }
+
+    @Override
+    public void enableAllCharsets() {
+        configuration.setAddAllCharsets(true);
+    }
+
+    @Override
+    public void initializeAtBuildTime(final String... classes) {
+        if (configuration.getInitializeAtBuildTime() == null) {
+            configuration.setInitializeAtBuildTime(new ArrayList<>());
+        }
+        configuration.getInitializeAtBuildTime().addAll(asList(classes));
     }
 
     @Override

@@ -16,8 +16,22 @@
  */
 package org.apache.geronimo.arthur.integrationtests;
 
+import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.Objects;
+
 import org.apache.geronimo.arthur.integrationtests.container.MavenContainer;
+import org.apache.geronimo.arthur.integrationtests.junit5.Invocation;
 import org.apache.geronimo.arthur.integrationtests.junit5.Spec;
+import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
+import org.apache.sshd.server.SshServer;
+import org.apache.sshd.server.auth.BuiltinUserAuthFactories;
+import org.apache.sshd.server.command.AbstractCommandSupport;
+import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -30,4 +44,51 @@ class MavenTest {
     @Test
     @Spec(project = "integration-tests/cuilliere", expectedOutput = "Cui-yère")
     void cuilliere() {}
+
+    @Test
+    @Spec(project = "integration-tests/jsch", expectedOutput = "pong", forwardedExecutionSystemProperties = {
+            "MavenTest.jsch.port", "java.library.path", "javax.net.ssl.trustStore"
+    })
+    void jsch(final Invocation invocation) {
+        final SshServer ssh = SshServer.setUpDefaultServer();
+        ssh.setFileSystemFactory(new VirtualFileSystemFactory(Paths.get("target/missing")));
+        ssh.setPort(0);
+        ssh.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+        ssh.setUserAuthFactories(singletonList(BuiltinUserAuthFactories.PASSWORD.create()));
+        ssh.setPasswordAuthenticator((username, password, session) -> Objects.equals("test", username) && Objects.equals("testpwd", password));
+        ssh.setCommandFactory((channel, command) -> {
+            if ("ping".equals(command)) {
+                return new AbstractCommandSupport("ping", null) {
+                    @Override
+                    public void run() {
+                        try {
+                            getOutputStream().write("pong".getBytes(StandardCharsets.UTF_8));
+                            getExitCallback().onExit(0);
+                        } catch (final IOException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                };
+            }
+            throw new IllegalArgumentException(command);
+        });
+
+        try {
+            ssh.start();
+            System.setProperty("MavenTest.jsch.port", Integer.toString(ssh.getPort()));
+            invocation.run();
+        } catch (final IOException e) {
+            fail(e);
+        } finally {
+            System.clearProperty("MavenTest.jsch.port");
+            if (ssh.isStarted()) {
+                try {
+                    ssh.close(true).await();
+                } catch (final IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        }
+
+    }
 }

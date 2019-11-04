@@ -1,0 +1,66 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Arthur JSch Knights
+
+Arthur JSch knight is responsible to support JSch.
+It preconfigure the reflection and enforce the security support of the native-image.
+
+== Coordinates
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.apache.geronimo.arthur.knights</groupId>
+  <artifactId>jsch-knight</artifactId>
+  <version>${arthur.version}</version>
+</dependency>
+----
+
+== Usage
+
+IMPORTANT: to ensure it is usable you must package with your binary `sunec` native library. It can be done this way:
+
+[source,xml]
+----
+<plugin>
+  <groupId>${project.groupId}</groupId>
+  <artifactId>arthur-maven-plugin</artifactId>
+  <version>${project.version}</version>
+  <configuration>
+    <main>org.apache.geronimo.arthur.demo.JschMain</main>
+    <graalExtensions> <1>
+      <graalExtension>jsch</graalExtension>
+    </graalExtensions>
+    <includeNatives> <2>
+      <includeNative>sunec</includeNative>
+    </includeNatives>
+    <includeCacerts>true</includeCacerts> <3>
+    <!-- avoid to conflict with host cache since we mount the local m2 to speed up the execution -->
+    <graalCacheGav>org.apache.geronimo.arthur.cache:graal-integrationtests</graalCacheGav>
+  </configuration>
+</plugin>
+----
+
+<1> Ensure JSch knight is added for the build
+<2> Ensure sunec is packaged in docker images (optional if you don't bundle the native binary in a container)
+<3> Ensure JVM certificates are bundles in docker images (optional as sunec)
+
+TIP: if you want to use custom native libraries and/or a custom trustore, you can use `otherFiles` configuration of the mojo.
+
+---
+
+Previous: link:knights.html[Knights]

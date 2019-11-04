@@ -27,10 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MavenContainer extends GenericContainer<MavenContainer> {
     public MavenContainer() {
-        super("maven:3.6.2-jdk-8-slim");
+        super(System.getProperty("arthur.container.maven.image", "maven:3.6.2-jdk-8-slim"));
         setWorkingDirectory("/opt/geronimo/arthur/integration-test");
         setCommand("sleep", "infinity");
-        withFileSystemBind(System.getProperty("arthur.m2.repository"), "/root/.m2/repository");
+        withFileSystemBind(System.getProperty("arthur.m2.repository"), "/root/.m2/repository"); // cache
+        // enable to start a server in a test and connect on it from the mvn container
+        setNetworkMode(System.getProperty("arthur.container.maven.network", "host"));
     }
 
     @Override
