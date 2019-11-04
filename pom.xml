@@ -166,6 +166,7 @@
             <exclude>**/crest-commands.txt</exclude>
             <exclude>**/*.html</exclude>
             <exclude>**/favicon/*</exclude>
+            <exclude>.site-content/**</exclude>
           </excludes>
         </configuration>
         <executions>
