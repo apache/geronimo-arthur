@@ -19,6 +19,7 @@ on: [push, pull_request]
 jobs:
   publish_website:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
     env:
       MAVEN_OPTS: -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
     steps:
@@ -38,14 +39,12 @@ jobs:
         echo "cd documentation && mvn clean prepare-package scm-publish:publish-scm -DskipTests && cd -"
 
   build:
+    runs-on: ubuntu-latest
     env:
       MAVEN_OPTS: -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         java: [ '1.8', '11.0.4' ]
-
     steps:
     - name: Clone
       uses: actions/checkout@v1
