@@ -23,7 +23,10 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
 import static org.asciidoctor.SafeMode.UNSAFE;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -181,8 +184,17 @@ public class Generate {
                     visitor.visit(staticConfiguration, file -> executor.execute(() -> {
                         final Path target = output.resolve(staticConfiguration.getLocation().relativize(file));
                         ensureExists(target.getParent());
+                        final String filename = file.getFileName().toString();
                         try {
-                            Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+                            if (filename.endsWith(".js") || filename.endsWith(".css")) { // strip ASF header
+                                try (final BufferedReader reader = Files.newBufferedReader(file);
+                                     final InputStream stream = new ByteArrayInputStream(
+                                             reader.lines().skip(16/*header*/).collect(joining("\n")).getBytes(StandardCharsets.UTF_8))) {
+                                    Files.copy(stream, target, StandardCopyOption.REPLACE_EXISTING);
+                                }
+                            } else {
+                                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+                            }
                         } catch (final IOException e) {
                             throw new IllegalStateException(e);
                         }
@@ -224,7 +236,7 @@ public class Generate {
         ensureExists(workdir);
         final Collection<MojoParser.Parameter> parameters = mojoParser.extractParameters(mojo);
         try (final Writer writer = Files.newBufferedWriter(workdir.resolve("generated_" + marker + "_mojo.adoc"))) {
-            writer.write("[opts=\"header\",role=\"table table-bordered\"]\n" +
+            writer.write("[opts=\"header\",role=\"table table-bordered\",cols=\"2,1,3\"]\n" +
                     "|===\n" +
                     "|Name|Type|Description\n\n" +
                     parameters.stream()

@@ -66,6 +66,7 @@ public class MojoParser {
                             if (generics > 0) {
                                 type = type.substring(0, generics);
                             }
+                            type = type.substring(type.indexOf('.') + 1); // nested classes dont need enclosing
                             parameters.add(new Parameter(
                                     line.substring(nameStart, line.length() - ";".length()),
                                     type,

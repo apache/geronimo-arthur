@@ -134,7 +134,7 @@ public class NativeImageMojo extends ArthurMojo {
     private int maxRuntimeCompileMethods;
 
     /**
-     * Enforce {@link #maxRuntimeCompileMethods}.
+     * Enforce `maxRuntimeCompileMethods`.
      */
     @Parameter(property = "arthur.enforceMaxRuntimeCompileMethods", defaultValue = "true")
     private boolean enforceMaxRuntimeCompileMethods;
@@ -165,6 +165,7 @@ public class NativeImageMojo extends ArthurMojo {
 
     /**
      * Behavior when native compilation fails, it is recommended to keep it to "no".
+     * Supported values are `no`, `force` and `auto`.
      */
     @Parameter(property = "arthur.fallbackMode", defaultValue = "no")
     private ArthurNativeImageConfiguration.FallbackMode fallbackMode;
@@ -223,25 +224,25 @@ public class NativeImageMojo extends ArthurMojo {
     //
 
     /**
-     * Inline configuration model (appended to {@link #reflectionConfigurationFiles}.
+     * Inline configuration model (appended to `reflectionConfigurationFiles`).
      */
     @Parameter
     private List<ClassReflectionModel> reflections;
 
     /**
-     * Inline resource bundle model (appended to {@link #reflectionConfigurationFiles}.
+     * Inline resource bundle model (appended to `reflectionConfigurationFiles`).
      */
     @Parameter
     private List<ResourceBundleModel> bundles;
 
     /**
-     * Inline resources model (appended to {@link #resourcesConfigurationFiles}.
+     * Inline resources model (appended to `resourcesConfigurationFiles`).
      */
     @Parameter
     private List<ResourceModel> resources;
 
     /**
-     * Inline dynamic proxy configuration (appended to {@link #dynamicProxyConfigurationFiles}).
+     * Inline dynamic proxy configuration (appended to `dynamicProxyConfigurationFiles`).
      */
     @Parameter
     private List<DynamicProxyModel> dynamicProxies;
