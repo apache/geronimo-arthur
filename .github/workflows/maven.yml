@@ -17,7 +17,29 @@ name: Github CI
 on: [push, pull_request]
 
 jobs:
+  publish_website:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    env:
+      MAVEN_OPTS: -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    steps:
+    - name: Clone
+      uses: actions/checkout@v1
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: '1.8'
+    - name: Publish website
+      env:
+        MAVEN_OPTS: -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        WEBSITE_PUBLISH_USERNAME: ${{ secrets.WEBSITE_PUBLISH_USERNAME }}
+        WEBSITE_PUBLISH_PASSWORD: ${{ secrets.WEBSITE_PUBLISH_PASSWORD }}
+      run: |
+        # todo: setup credentials
+        echo "cd documentation && mvn clean prepare-package scm-publish:publish-scm -DskipTests && cd -"
+
   build:
+    env:
+      MAVEN_OPTS: -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     runs-on: ubuntu-latest
     strategy:
@@ -33,11 +55,3 @@ jobs:
         java-version: ${{ matrix.java }}
     - name: Build
       run: mvn clean install -Pintegration-tests
-    - name: Publish website
-      env:
-        WEBSITE_PUBLISH_USERNAME: ${{ secrets.WEBSITE_PUBLISH_USERNAME }}
-        WEBSITE_PUBLISH_PASSWORD: ${{ secrets.WEBSITE_PUBLISH_PASSWORD }}
-      run: |
-        # todo: setup credentials
-        echo cd documentation && mvn clean prepare-package scm-publish:publish-scm -DskipTests && cd -
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push' && matrix.java == '1.8'
