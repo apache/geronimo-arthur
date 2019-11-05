@@ -16,7 +16,6 @@
  */
 package org.apache.geronimo.arthur.integrationtests.container;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
@@ -52,7 +51,8 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
         final String tag = fromImage.split(":")[1];
         final String targetImage = "apache/geronimo/arthur/maven-test-base:" + tag;
 
-        try (final DockerClient client = DockerClientFactory.instance().client()) {
+        final DockerClient client = DockerClientFactory.instance().client();
+        try {
             if (!client.listImagesCmd().withImageNameFilter(targetImage).exec().isEmpty()) {
                 log.info("Found '{}' image, reusing it", targetImage);
                 return targetImage;
@@ -70,7 +70,7 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
         } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(ie);
-        } catch (final IOException | ExecutionException e) {
+        } catch (final ExecutionException e) {
             throw new IllegalStateException(e);
         }
     }
