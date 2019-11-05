@@ -12,13 +12,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+#
+# Build notes:
+# - We override local maven repository to be hosted in /home/runner/work/geronimo-arthur/geronimo-arthur/ which is the clone directory to ensure we can use cache action
+# - Build relies on .github/settings.xml for site deployment, it requires secrets to be set up on  github
+#
+
 name: Github CI
 
 on: [push, pull_request]
 
 env:
-  MAVEN_OPTS: -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-  M2_REPOSITORY: /home/runner/.m2/repository/
+  MAVEN_OPTS: -Dmaven.repo.local=/home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 jobs:
   publish_website:
@@ -35,7 +41,7 @@ jobs:
     - name: Cache Maven Repository
       uses: actions/cache@v1
       with:
-        path: $M2_REPOSITORY
+        path: /home/runner/work/geronimo-arthur/geronimo-arthur/.m2
         key: m2_repository
     - name: Publish website
       env:
@@ -43,10 +49,10 @@ jobs:
         WEBSITE_PUBLISH_PASSWORD: ${{ secrets.WEBSITE_PUBLISH_PASSWORD }}
       run: |
         # todo: setup credentials
-        mvn clean install -DskipTests -T2 && \
+        mvn install -DskipTests -T2 && \
         echo "mvn clean prepare-package scm-publish:publish-scm -DskipTests -gs ../.github/settings.xml -pl documentation"
     - name: Remove Snapshots Before Caching
-      run: find $M2_REPOSITORY -name '*SNAPSHOT' | xargs rm -Rf
+      run: find /home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -name '*SNAPSHOT' | xargs rm -Rf
 
   build:
     name: Main Build
@@ -60,13 +66,13 @@ jobs:
     - name: Cache Maven Repository
       uses: actions/cache@v1
       with:
-        path: $M2_REPOSITORY
+        path: /home/runner/work/geronimo-arthur/geronimo-arthur/.m2
         key: m2_repository
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.java }}
     - name: Build
-      run: mvn clean install -Pintegration-tests
+      run: mvn install -Pintegration-tests
     - name: Remove Snapshots Before Caching
-      run: find $M2_REPOSITORY -name '*SNAPSHOT' | xargs rm -Rf
+      run: find /home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -name '*SNAPSHOT' | xargs rm -Rf

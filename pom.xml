@@ -167,6 +167,7 @@
             <exclude>**/*.html</exclude>
             <exclude>**/favicon/*</exclude>
             <exclude>.site-content/**</exclude>
+            <exclude>.m2/**</exclude>
           </excludes>
         </configuration>
         <executions>
