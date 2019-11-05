@@ -16,18 +16,21 @@
  */
 package org.apache.geronimo.arthur.integrationtests.container;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.io.IOException;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
+import com.github.dockerjava.api.DockerClient;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MavenContainer extends GenericContainer<MavenContainer> {
     public MavenContainer() {
-        super(System.getProperty("arthur.container.maven.image", "maven:3.6.2-jdk-8-slim"));
+        super(findImage());
         setWorkingDirectory("/opt/geronimo/arthur/integration-test");
         setCommand("sleep", "infinity");
         withFileSystemBind(System.getProperty("arthur.m2.repository"), "/root/.m2/repository"); // cache
@@ -35,21 +38,40 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
         setNetworkMode(System.getProperty("arthur.container.maven.network", "host"));
     }
 
-    @Override
-    public void start() {
-        super.start();
-        try {
-            log.info("Ensuring gcc is present");
+    private static String findImage() {
+        return Optional.of(System.getProperty("arthur.container.maven.image", "auto"))
+                .filter(it -> !"auto".equals(it))
+                .orElseGet(MavenContainer::getOrCreateAutoBaseImage);
+    }
 
-            final ExecResult update = execInContainer("apt", "update");
-            assertEquals(0, update.getExitCode(), () -> "Can't update apt: " + update.getStderr());
+    // we can run apt update && apt install -y gcc libc6-dev zlib1g-dev in start() but it is slow so we cache it through an image
+    // note: we don't clean the image to be able to reuse it and speed up integration-tests, use -Darthur.container.maven.deleteOnExit=true to auto clean it
+    private static String getOrCreateAutoBaseImage() {
+        final String fromImage = System.getProperty("arthur.container.maven.baseimage", "maven:3.6.2-jdk-8-slim");
+        // creating a tag from the source image to ensure we can have multiple test versions (maven/jdk matrix)
+        final String tag = fromImage.split(":")[1];
+        final String targetImage = "apache/geronimo/arthur/maven-test-base:" + tag;
 
-            final ExecResult gcc = execInContainer("apt", "install", "-y", "gcc", "libc6-dev", "zlib1g-dev");
-            assertEquals(0, gcc.getExitCode(), () -> "Can't install gcc: " + gcc.getStderr());
-        } catch (final IOException e) {
-            throw new IllegalStateException(e);
-        } catch (final InterruptedException e) {
+        try (final DockerClient client = DockerClientFactory.instance().client()) {
+            if (!client.listImagesCmd().withImageNameFilter(targetImage).exec().isEmpty()) {
+                log.info("Found '{}' image, reusing it", targetImage);
+                return targetImage;
+            }
+
+            log.info("Didn't find '{}', creating it from '{}'", targetImage, fromImage);
+            return new ImageFromDockerfile(
+                    targetImage, Boolean.getBoolean("arthur.container.maven.deleteOnExit"))
+                    .withDockerfileFromBuilder(builder -> builder.from(fromImage)
+                            .run("apt update && apt install -y gcc libc6-dev zlib1g-dev")
+                            .label("org.apache.geronimo.arthur.environment", "integration-tests")
+                            .label("org.apache.geronimo.arthur.baseImage", fromImage)
+                            .label("org.apache.geronimo.arthur.tag", tag))
+                    .get();
+        } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
+            throw new IllegalStateException(ie);
+        } catch (final IOException | ExecutionException e) {
+            throw new IllegalStateException(e);
         }
     }
 }

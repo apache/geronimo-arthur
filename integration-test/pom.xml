@@ -30,6 +30,11 @@
   <artifactId>integration-test</artifactId>
   <name>Arthur :: Integration Tests</name>
 
+  <properties>
+    <!-- feel free to set it to true to avoid to "leak" a docker image, but it will slow down runs -->
+    <arthur.container.maven.deleteOnExit>false</arthur.container.maven.deleteOnExit>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.testcontainers</groupId>
@@ -70,7 +75,11 @@
         <configuration>
           <systemPropertyVariables>
             <arthur.m2.repository>${settings.localRepository}</arthur.m2.repository>
+            <arthur.container.maven.deleteOnExit>${arthur.container.maven.deleteOnExit}</arthur.container.maven.deleteOnExit>
           </systemPropertyVariables>
+          <environmentVariables>
+            <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+          </environmentVariables>
         </configuration>
       </plugin>
     </plugins>
