@@ -33,7 +33,6 @@
   <properties>
     <geronimo-arthur.shortname>documentation</geronimo-arthur.shortname>
 
-    <maven-scm-publish-plugin.serverId>apache.releases.https</maven-scm-publish-plugin.serverId>
     <doc.mojo.basedir>
       ${project.parent.basedir}/arthur-maven-plugin/src/main/java/org/apache/geronimo/arthur/maven/mojo
     </doc.mojo.basedir>
@@ -191,7 +190,6 @@
           </execution>
         </executions>
         <configuration>
-          <serverId>${maven-scm-publish-plugin.serverId}</serverId>
           <content>${project.build.directory}/documentation</content>
           <pubScmUrl>scm:svn:https://svn.apache.org/repos/infra/websites/production/geronimo/content/arthur</pubScmUrl>
           <tryUpdate>true</tryUpdate>
