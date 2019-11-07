@@ -34,7 +34,7 @@
 
   <modules>
     <module>jsch-knight</module>
-    <!-- deactivated until the release
+    <!-- NEEDS_WINEGROWER_RELEASE deactivated until the release
     <module>winegrower-knight</module>
     -->
   </modules>

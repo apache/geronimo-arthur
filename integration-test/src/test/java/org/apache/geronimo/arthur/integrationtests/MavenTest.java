@@ -48,7 +48,7 @@ class MavenTest {
 
 
     @Test
-    @EnabledIfSystemProperty(named = "winegrower.enabled", matches = "true") // deactivated until the release
+    @EnabledIfSystemProperty(named = "winegrower.enabled", matches = "NEEDS_WINEGROWER_RELEASE") // deactivated until the release
     @Spec(expectedOutput = "Starting org.apache.geronimo.arthur.integrationtests.Application")
     void scr() {}
 

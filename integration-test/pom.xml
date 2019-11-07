@@ -79,12 +79,14 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- NEEDS_WINEGROWER_RELEASE commented until winegrower is released
     <dependency>
       <groupId>${project.groupId}.knights</groupId>
       <artifactId>winegrower-knight</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    -->
   </dependencies>
 
   <build>

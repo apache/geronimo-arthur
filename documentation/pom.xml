@@ -57,7 +57,7 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <!-- deactivated until the release
+    <!-- NEEDS_WINEGROWER_RELEASE deactivated until the release
     <dependency>
       <groupId>${project.groupId}.knights</groupId>
       <artifactId>winegrower-knight</artifactId>
