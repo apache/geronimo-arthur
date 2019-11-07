@@ -44,6 +44,8 @@
 
     <!-- knights -->
     <jsch.version>0.1.55</jsch.version>
+    <graalvm.version>19.2.1</graalvm.version>
+    <winegrower.version>1.0-SNAPSHOT</winegrower.version>
 
     <!-- plugin versions/confs -->
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
@@ -168,6 +170,7 @@
             <exclude>**/favicon/*</exclude>
             <exclude>.site-content/**</exclude>
             <exclude>.m2/**</exclude>
+            <exclude>**/*.iml</exclude>
           </excludes>
         </configuration>
         <executions>

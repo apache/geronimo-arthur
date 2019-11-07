@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -47,7 +48,8 @@ public class ArthurNativeImageExecutor implements Runnable {
         final ConfigurationGenerator configurationGenerator = new ConfigurationGenerator(
                 loadExtensions(),
                 configuration.configuration, configuration.workingDirectory, configuration.jsonSerializer,
-                configuration.annotatedClassFinder, configuration.annotatedMethodFinder, configuration.implementationFinder);
+                configuration.annotatedClassFinder, configuration.annotatedMethodFinder, configuration.implementationFinder,
+                configuration.extensionProperties);
         configurationGenerator.run();
 
         final List<String> command = new CommandGenerator().generate(configuration.configuration);
@@ -72,5 +74,6 @@ public class ArthurNativeImageExecutor implements Runnable {
         private final Function<Class<? extends Annotation>, Collection<Method>> annotatedMethodFinder;
         private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
         private final ArthurNativeImageConfiguration configuration;
+        private final Map<String, String> extensionProperties;
     }
 }

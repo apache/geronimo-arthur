@@ -16,6 +16,7 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -27,7 +28,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -51,12 +54,14 @@ public class ConfigurationGenerator implements Runnable {
     private final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder;
     private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
     private final Function<Class<? extends Annotation>, Collection<Method>> methodFinder;
+    private final Map<String, String> extensionProperties;
 
     public ConfigurationGenerator(final Iterable<ArthurExtension> extensions, final ArthurNativeImageConfiguration configuration,
                                   final Path workingDirectory, final BiConsumer<Object, Writer> jsonSerializer,
                                   final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder,
                                   final Function<Class<? extends Annotation>, Collection<Method>> methodFinder,
-                                  final Function<Class<?>, Collection<Class<?>>> implementationFinder) {
+                                  final Function<Class<?>, Collection<Class<?>>> implementationFinder,
+                                  final Map<String, String> extensionProperties) {
         this.extensions = StreamSupport.stream(extensions.spliterator(), false).collect(toList());
         this.configuration = configuration;
         this.workingDirectory = workingDirectory;
@@ -64,11 +69,16 @@ public class ConfigurationGenerator implements Runnable {
         this.classFinder = classFinder;
         this.methodFinder = methodFinder;
         this.implementationFinder = implementationFinder;
+        this.extensionProperties = extensionProperties;
     }
 
     @Override
     public void run() {
-        final DefautContext context = new DefautContext(configuration, classFinder, methodFinder, implementationFinder);
+        // ensure to have a writtable instance (see Context#setProperty(String, String))
+        final HashMap<String, String> properties = ofNullable(this.extensionProperties).map(HashMap::new).orElseGet(HashMap::new);
+        properties.put("workingDirectory", workingDirectory.toAbsolutePath().toString());
+
+        final DefautContext context = new DefautContext(configuration, classFinder, methodFinder, implementationFinder, properties);
         for (final ArthurExtension extension : extensions) {
             log.debug("Executing {}", extension);
             context.setModified(false);

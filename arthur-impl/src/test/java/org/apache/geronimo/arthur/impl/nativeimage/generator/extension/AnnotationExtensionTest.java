@@ -53,7 +53,8 @@ class AnnotationExtensionTest {
         final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(),
                 finder::findAnnotatedClasses,
                 finder::findAnnotatedMethods,
-                p -> Collection.class.cast(finder.findImplementations(p)));
+                p -> Collection.class.cast(finder.findImplementations(p)),
+                null);
         new AnnotationExtension().execute(context);
         try (final Jsonb jsonb = JsonbBuilder.create(
                 new JsonbConfig().withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {

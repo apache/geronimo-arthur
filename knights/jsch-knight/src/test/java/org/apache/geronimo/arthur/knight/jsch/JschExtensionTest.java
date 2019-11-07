@@ -34,7 +34,7 @@ class JschExtensionTest {
     @Test
     void extension() {
         final ArthurNativeImageConfiguration configuration = new ArthurNativeImageConfiguration();
-        final DefautContext context = new DefautContext(configuration, null, null, null);
+        final DefautContext context = new DefautContext(configuration, null, null, null, null);
         new JschExtension().execute(context);
 
         assertTrue(configuration.isEnableAllSecurityServices());

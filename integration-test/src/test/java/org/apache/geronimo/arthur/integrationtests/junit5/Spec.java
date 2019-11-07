@@ -19,6 +19,7 @@ package org.apache.geronimo.arthur.integrationtests.junit5;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static org.apache.geronimo.arthur.integrationtests.junit5.Spec.ExpectedType.EQUALS;
@@ -65,7 +66,7 @@ import lombok.extern.slf4j.Slf4j;
 @Retention(RUNTIME)
 @ExtendWith(Spec.Impl.class)
 public @interface Spec {
-    String project();
+    String project() default "";
 
     String binary() default "./target/${project.artifactId}.graal.bin";
 
@@ -89,7 +90,7 @@ public @interface Spec {
         }
     }
 
-    @Slf4j
+    @Slf4j // todo: make it parallelisable?
     class Impl implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
         public static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(Impl.class);
@@ -109,11 +110,14 @@ public @interface Spec {
             store.put(Spec.class, spec);
             store.put(MavenContainer.class, mvn);
             final Invocation invocation = () -> {
-                final Path root = jarFromResource(spec.project()).toPath().resolve(spec.project());
+                final String project = of(spec.project())
+                        .filter(it -> !it.isEmpty())
+                        .orElseGet(() -> "integration-tests/" + context.getRequiredTestMethod().getName());
+                final Path root = jarFromResource(project).toPath().resolve(project);
                 final Collection<String> files = copyProject(mvn, root, spec);
                 store.put(CopiedFiles.class, new CopiedFiles(mvn, files));
 
-                log.info("Compiling the project '" + spec.project().substring(spec.project().lastIndexOf('/') + 1) + "'");
+                log.info("Compiling the project '" + project.substring(project.lastIndexOf('/') + 1) + "'");
                 final ExecResult result = buildAndRun(
                         mvn, spec.binary().replace("${project.artifactId}", findArtifactId(root.resolve("pom.xml"))),
                         spec.forwardedExecutionSystemProperties());

@@ -34,6 +34,9 @@
 
   <modules>
     <module>jsch-knight</module>
+    <!-- deactivated until the release
+    <module>winegrower-knight</module>
+    -->
   </modules>
 
   <dependencies>
@@ -51,7 +54,7 @@
       <dependency>
         <groupId>com.oracle.substratevm</groupId>
         <artifactId>svm</artifactId>
-        <version>19.2.0.1</version>
+        <version>${svm.version}</version>
         <scope>provided</scope>
       </dependency>
       -->

@@ -33,6 +33,7 @@ import org.apache.sshd.server.auth.BuiltinUserAuthFactories;
 import org.apache.sshd.server.command.AbstractCommandSupport;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -42,11 +43,17 @@ class MavenTest {
     private static final MavenContainer MVN = new MavenContainer();
 
     @Test
-    @Spec(project = "integration-tests/cuilliere", expectedOutput = "Cui-yère")
+    @Spec(expectedOutput = "Cui-yère")
     void cuilliere() {}
 
+
     @Test
-    @Spec(project = "integration-tests/jsch", expectedOutput = "pong", forwardedExecutionSystemProperties = {
+    @EnabledIfSystemProperty(named = "winegrower.enabled", matches = "true") // deactivated until the release
+    @Spec(expectedOutput = "Starting org.apache.geronimo.arthur.integrationtests.Application")
+    void scr() {}
+
+    @Test
+    @Spec(expectedOutput = "pong", forwardedExecutionSystemProperties = {
             "MavenTest.jsch.port", "java.library.path", "javax.net.ssl.trustStore"
     })
     void jsch(final Invocation invocation) {

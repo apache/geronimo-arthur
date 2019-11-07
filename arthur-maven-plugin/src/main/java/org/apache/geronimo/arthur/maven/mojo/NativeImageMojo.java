@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
@@ -62,11 +63,23 @@ import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.DefaultArtifactHandler;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.DefaultDependencyResolutionRequest;
+import org.apache.maven.project.DependencyResolutionException;
+import org.apache.maven.project.DependencyResolutionRequest;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
+import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
 import org.apache.xbean.finder.AnnotationFinder;
 import org.apache.xbean.finder.archive.CompositeArchive;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.graph.DependencyVisitor;
 
 import lombok.Getter;
 
@@ -283,6 +296,7 @@ public class NativeImageMojo extends ArthurMojo {
 
     /**
      * `<groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>` list of artifacts appended to graal build.
+     * If you don't want transitive dependencies to be included, you can append to the coordinates `?transitive=false`.
      */
     @Parameter(property = "arthur.graalExtensions")
     private List<String> graalExtensions;
@@ -297,8 +311,32 @@ public class NativeImageMojo extends ArthurMojo {
      * Should jar be used instead of exploded folder (target/classes).
      * Note this option disable the support of module test classes.
      */
-    @Parameter(property = "project.usePackagedArtifact", defaultValue = "false")
+    @Parameter(property = "arthur.usePackagedArtifact", defaultValue = "false")
     private boolean usePackagedArtifact;
+
+    /**
+     * Should binary artifact be attached.
+     */
+    @Parameter(property = "arthur.attach", defaultValue = "true")
+    private boolean attach;
+
+    /**
+     * If `attach` is true, the classifier to use the binary file, `none` will skip the classifier.
+     */
+    @Parameter(property = "arthur.attachClassifier", defaultValue = "arthur")
+    private String attachClassifier;
+
+    /**
+     * If `attach` is true, the type to use to attach the binary file.
+     */
+    @Parameter(property = "arthur.attachType", defaultValue = "bin")
+    private String attachType;
+
+    /**
+     * Properties passed to the extensions if needed.
+     */
+    @Parameter
+    private Map<String, String> extensionProperties;
 
     @Parameter(defaultValue = "${project.packaging}", readonly = true)
     private String packaging;
@@ -321,6 +359,15 @@ public class NativeImageMojo extends ArthurMojo {
     @Parameter(defaultValue = "${project.build.testOutputDirectory}")
     private File testClasses;
 
+    @Component
+    private ProjectDependenciesResolver dependenciesResolver;
+
+    @Component
+    private DependencyGraphBuilder graphBuilder;
+
+    @Component
+    private MavenProjectHelper helper;
+
     private String cachedVersion;
 
     @Override
@@ -334,7 +381,7 @@ public class NativeImageMojo extends ArthurMojo {
             return;
         }
 
-        final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
         final ArthurNativeImageConfiguration configuration = getConfiguration(classpathEntries.values());
         if (nativeImage == null) {
@@ -438,6 +485,14 @@ public class NativeImageMojo extends ArthurMojo {
         if (propertiesPrefix != null) {
             project.getProperties().setProperty(propertiesPrefix + "binary.path", output);
         }
+
+        if (attach) {
+            if (!"none".equals(attachClassifier) && attachClassifier != null && !attachClassifier.isEmpty()) {
+                helper.attachArtifact(project, attachType, attachClassifier, new File(output));
+            } else {
+                helper.attachArtifact(project, attachType, new File(output));
+            }
+        }
     }
 
     private Predicate<Artifact> createScanningFilter() {
@@ -488,11 +543,60 @@ public class NativeImageMojo extends ArthurMojo {
         return ofNullable(graalExtensions)
                 .map(e -> e.stream()
                         .map(this::prepareExtension)
-                        .map(this::toArtifact)
+                        .flatMap(art -> art.endsWith("?transitive=false") ?
+                                Stream.of(toArtifact(art)) :
+                                resolveTransitiveDependencies(toArtifact(art)))
                         .map(it -> new AbstractMap.SimpleImmutableEntry<>(
                                 toMavenArtifact(it),
                                 resolve(it).getFile().toPath())))
                 .orElseGet(Stream::empty);
+    }
+
+    private Stream<org.eclipse.aether.artifact.Artifact> resolveTransitiveDependencies(final org.eclipse.aether.artifact.Artifact artifact) {
+        final Dependency rootDependency = new Dependency();
+        rootDependency.setGroupId(artifact.getGroupId());
+        rootDependency.setArtifactId(artifact.getArtifactId());
+        rootDependency.setVersion(artifact.getVersion());
+        rootDependency.setClassifier(artifact.getClassifier());
+        rootDependency.setType(artifact.getExtension());
+
+        final MavenProject fakeProject = new MavenProject();
+        fakeProject.getDependencies().add(rootDependency);
+
+        final DependencyResolutionRequest request = new DefaultDependencyResolutionRequest();
+        request.setMavenProject(fakeProject);
+        request.setRepositorySession(repositorySystemSession);
+
+        final Collection<org.eclipse.aether.artifact.Artifact> artifacts = new ArrayList<>();
+        try {
+            dependenciesResolver.resolve(request).getDependencyGraph().accept(new DependencyVisitor() {
+                @Override
+                public boolean visitEnter(org.eclipse.aether.graph.DependencyNode node) {
+                    return true;
+                }
+
+                @Override
+                public boolean visitLeave(org.eclipse.aether.graph.DependencyNode node) {
+                    final org.eclipse.aether.artifact.Artifact artifact = node.getArtifact();
+                    if (artifact == null) {
+                        if (node.getChildren() != null) {
+                            node.getChildren().stream()
+                                    .map(DependencyNode::getArtifact)
+                                    .filter(Objects::nonNull)
+                                    .forEach(artifacts::add);
+                        } else {
+                            getLog().warn(node + " has no artifact");
+                        }
+                    } else {
+                        artifacts.add(artifact);
+                    }
+                    return true;
+                }
+            });
+            return artifacts.stream();
+        } catch (final DependencyResolutionException e) {
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     // support short name for our knights

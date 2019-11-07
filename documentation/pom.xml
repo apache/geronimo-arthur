@@ -46,6 +46,30 @@
       <artifactId>arthur-maven-plugin</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}.knights</groupId>
+      <artifactId>jsch-knight</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!-- deactivated until the release
+    <dependency>
+      <groupId>${project.groupId}.knights</groupId>
+      <artifactId>winegrower-knight</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    -->
 
     <!-- generation dependencies -->
     <dependency>

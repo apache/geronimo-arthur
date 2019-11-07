@@ -49,8 +49,6 @@ IMPORTANT: to ensure it is usable you must package with your binary `sunec` nati
       <includeNative>sunec</includeNative>
     </includeNatives>
     <includeCacerts>true</includeCacerts> <3>
-    <!-- avoid to conflict with host cache since we mount the local m2 to speed up the execution -->
-    <graalCacheGav>org.apache.geronimo.arthur.cache:graal-integrationtests</graalCacheGav>
   </configuration>
 </plugin>
 ----

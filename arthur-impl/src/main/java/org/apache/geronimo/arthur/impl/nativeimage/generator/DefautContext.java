@@ -17,14 +17,21 @@
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
 import static java.util.Arrays.asList;
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
 import org.apache.geronimo.arthur.spi.ArthurExtension;
@@ -45,6 +52,7 @@ public class DefautContext implements ArthurExtension.Context {
     private final Collection<ResourceModel> resources = new HashSet<>();
     private final Collection<ResourceBundleModel> bundles = new HashSet<>();
     private final Collection<DynamicProxyModel> dynamicProxyModels = new HashSet<>();
+    private final Map<String, String> extensionProperties;
     private boolean modified;
 
     @Override
@@ -108,6 +116,67 @@ public class DefautContext implements ArthurExtension.Context {
     }
 
     @Override
+    public String getProperty(final String key) {
+        return extensionProperties.get(key);
+    }
+
+    @Override
+    public void setProperty(final String key, final String value) {
+        extensionProperties.put(key, value);
+    }
+
+    @Override
+    public void addNativeImageOption(final String option) {
+        if (configuration.getCustomOptions() == null) {
+            configuration.setCustomOptions(new ArrayList<>());
+        }
+        configuration.getCustomOptions().add(option);
+    }
+
+    @Override
+    public Class<?> loadClass(final String name) {
+        try {
+            return Thread.currentThread().getContextClassLoader().loadClass(name);
+        } catch (final ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public Stream<Class<?>> findHierarchy(final Class<?> clazz) {
+        return doFindHierarchy(clazz, new HashSet<>());
+    }
+
+    @Override
+    public Optional<Predicate<String>> createPredicate(final String property, final ArthurExtension.PredicateType type) {
+        return ofNullable(getProperty(property)).flatMap(ex -> Stream.of(ex.split(","))
+                .map(String::trim)
+                .filter(it -> !it.isEmpty())
+                .map(it -> of((Predicate<String>) n -> type.test(it, n)))
+                .reduce(Optional.<Predicate<String>>empty(),
+                        (opt, p) -> opt.map(e -> of(e.or(p.orElseThrow(IllegalArgumentException::new)))).orElse(p)));
+    }
+
+    @Override
+    public Predicate<String> createIncludesExcludes(final String propertyBase, final ArthurExtension.PredicateType type) {
+        final Optional<Predicate<String>> includes = createPredicate(propertyBase + "includes", type);
+        final Optional<Predicate<String>> excludes = createPredicate(propertyBase + "excludes", type);
+        return n -> {
+            if (includes.isPresent()) {
+                if (includes.orElseThrow(IllegalStateException::new).test(n)) {
+                    return true;
+                }
+            }
+            if (excludes.isPresent()) {
+                if (excludes.orElseThrow(IllegalStateException::new).test(n)) {
+                    return false;
+                }
+            }
+            return !excludes.isPresent() && !includes.isPresent();
+        };
+    }
+
+    @Override
     public <T> T unwrap(final Class<T> type) {
         if (ArthurNativeImageConfiguration.class == type) {
             return type.cast(configuration);
@@ -137,5 +206,14 @@ public class DefautContext implements ArthurExtension.Context {
             configuration.setDynamicProxyConfigurationFiles(new ArrayList<>());
         }
         configuration.getDynamicProxyConfigurationFiles().add(path);
+    }
+
+    private Stream<Class<?>> doFindHierarchy(final Class<?> clazz, final Set<Class<?>> visited) {
+        visited.add(clazz);
+        return Stream.concat(Stream.concat(
+                Stream.of(clazz), Stream.of(clazz.getSuperclass())), Stream.of(clazz.getInterfaces()))
+                .filter(it -> Object.class != it && it != null)
+                .flatMap(it -> visited.contains(it) ? Stream.of(it) : doFindHierarchy(it, visited))
+                .distinct();
     }
 }
