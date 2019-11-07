@@ -159,6 +159,10 @@
               <key>org.slf4j.simpleLogger.showShortLogName</key>
               <value>false</value>
             </systemProperty>
+            <systemProperty>
+              <key>org.slf4j.simpleLogger.logFile</key>
+              <value>System.out</value>
+            </systemProperty>
           </systemProperties>
         </configuration>
       </plugin>

@@ -16,7 +16,6 @@
 #
 # Build notes:
 # - We override local maven repository to be hosted in /home/runner/work/geronimo-arthur/geronimo-arthur/ which is the clone directory to ensure we can use cache action
-# - Build relies on .github/settings.xml for site deployment, it requires secrets to be set up on  github
 #
 
 name: Github CI
@@ -27,33 +26,6 @@ env:
   MAVEN_OPTS: -Dmaven.repo.local=/home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -Dmaven.artifact.threads=256 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 jobs:
-  publish_website:
-    name: Deploy Website
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Clone
-      uses: actions/checkout@v1
-    - name: Set up JDK
-      uses: actions/setup-java@v1
-      with:
-        java-version: '1.8'
-    - name: Cache Maven Repository
-      uses: actions/cache@v1
-      with:
-        path: /home/runner/work/geronimo-arthur/geronimo-arthur/.m2
-        key: m2_repository
-    - name: Publish website
-      env:
-        WEBSITE_PUBLISH_USERNAME: ${{ secrets.WEBSITE_PUBLISH_USERNAME }}
-        WEBSITE_PUBLISH_PASSWORD: ${{ secrets.WEBSITE_PUBLISH_PASSWORD }}
-      run: |
-        # todo: setup credentials
-        mvn install -DskipTests -T2 && \
-        echo "mvn clean prepare-package scm-publish:publish-scm -DskipTests -gs ../.github/settings.xml -pl documentation"
-    - name: Remove Snapshots Before Caching
-      run: find /home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -name '*SNAPSHOT' | xargs rm -Rf
-
   build:
     name: Main Build
     runs-on: ubuntu-latest
