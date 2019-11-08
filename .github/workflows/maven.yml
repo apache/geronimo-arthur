@@ -48,3 +48,22 @@ jobs:
       run: mvn install -Pintegration-tests
     - name: Remove Snapshots Before Caching
       run: find /home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -name '*SNAPSHOT' | xargs rm -Rf
+    security_audit:
+      name: Security Audit
+      runs-on: ubuntu-latest
+      steps:
+      - name: Clone
+        uses: actions/checkout@v1
+      - name: Cache Maven Repository
+        uses: actions/cache@v1
+        with:
+          path: /home/runner/work/geronimo-arthur/geronimo-arthur/.m2
+          key: m2_repository
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '1.8'
+      - name: Build
+        run: mvn install -Pintegration-tests -DskipTests -Dexec.skip=true ossindex:audit
+      - name: Remove Snapshots Before Caching
+        run: find /home/runner/work/geronimo-arthur/geronimo-arthur/.m2 -name '*SNAPSHOT' | xargs rm -Rf
