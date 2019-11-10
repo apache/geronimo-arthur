@@ -171,7 +171,7 @@
         <version>1.2.9</version>
         <configuration>
           <webapp>${project.build.directory}/documentation</webapp>
-          <webResourceCached>true</webResourceCached>
+          <webResourceCached>false</webResourceCached>
           <reloadGoals>prepare-package</reloadGoals> <!-- mvn meecrowave:bake -DskipTests, then "r" to reload -->
           <scanningExcludes>a,b,c,d,i,j,m,n,o,t</scanningExcludes>
         </configuration>

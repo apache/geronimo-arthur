@@ -16,16 +16,22 @@ limitations under the License.
 ////
 = Community
 
-=== The Source Code
+== The Source Code
 
 Source code is available on link:https://gitbox.apache.org/repos/asf?p=geronimo-arthur.git[gitbox].
+It is proxied on link:https://github.com/apache/geronimo-arthur[Github] too if you prefer.
 
-=== Social Media: cause contributing is not only about coding
+== CI
+
+The continous integration is done on Github Actions.
+You can find the manifest in `.github/workflows/maven.yml`.
+
+== Social Media: cause contributing is not only about coding
 
 - link:https://twitter.com/ASFGeronimo[icon:twitter[] Twitter]
 - link:https://webchat.freenode.net/?channels=geronimo[icon:terminal[] IRC]
 
-=== Mailing lists
+== Mailing lists
 
 * link:mailto:user-subscribe@geronimo.apache.org[Subscribe] to user@geronimo.apache.org
 * link:mailto:user-unsubscribe@geronimo.apache.org[Unsubscribe] from user@geronimo.apache.org
@@ -33,3 +39,23 @@ Source code is available on link:https://gitbox.apache.org/repos/asf?p=geronimo-
 
 Archives can be found on link:http://apache-geronimo.328035.n3.nabble.com/[Nabble].
 
+== Website/Documentation
+
+If you want to contribute to the website you can just fork the source repository on Github and do a pull request.
+
+The website generator layout is the following one:
+
+- content is available in asciidoctor format in `documentation/src/content`. It is really the published pages, they are just converted in html.
+- `documentation/src/static` contains the site assets/resources/.
+- `documentation/src/template` contains the site layout. It is just the `header` and `footer` which are concatenated to all content pages.
+
+The generator itself can be found in `documentation/src/main/java` and in particular the command `org.apache.geronimo.arthur.documentation.command.Generate#generate`.
+
+NOTE: part of the website is generated. This is the case of the Maven plugin documentation which relies on parsing sources to extract the documentation from the source.
+These generated documentation sources can be found - once generated - in `documentation/target/generated_documentation` and can be included in the `documentation/src/content` using the variable `{generated_dir}`.
+
+To run the website generation, you can go in `documentation/` folder and execute `mvn prepare-package`.
+
+To visualize it you can run `mvn meecrowave:bake` and go on `http://localhost:8080`.
+
+Finally to publish the website, just run `mvn scm-publish:publish-scm` - it requires apache credentials to be set up for SVN.
