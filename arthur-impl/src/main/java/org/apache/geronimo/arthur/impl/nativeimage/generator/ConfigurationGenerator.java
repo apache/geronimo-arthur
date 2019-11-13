@@ -16,6 +16,7 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
+import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
@@ -135,6 +137,33 @@ public class ConfigurationGenerator implements Runnable {
                 jsonSerializer.accept(proxies, writer);
             }
             context.addDynamicProxiesConfigFile(json.toAbsolutePath().toString());
+        }
+        if (!context.getDynamicClasses().isEmpty()) {
+            final Path dynamicClassesDir = workingDirectory.resolve("dynamic_classes");
+            context.getDynamicClasses().forEach((name, content) -> {
+                final Path target = dynamicClassesDir.resolve(name.replace('.', '/') + ".class");
+                if (!Files.exists(target.getParent())) {
+                    try {
+                        Files.createDirectories(target.getParent());
+                    } catch (final IOException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+                try {
+                    Files.write(target, content, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                } catch (final IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            log.info("Dumped generated classes in '{}'", dynamicClassesDir);
+            if (configuration.getClasspath() == null) {
+                configuration.setClasspath(singletonList(dynamicClassesDir.toString()));
+            } else {
+                configuration.setClasspath(Stream.concat(
+                        configuration.getClasspath().stream(),
+                        Stream.of(dynamicClassesDir.toString())
+                ).distinct().collect(toList()));
+            }
         }
     }
 

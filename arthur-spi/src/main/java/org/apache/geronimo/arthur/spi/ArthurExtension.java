@@ -144,6 +144,15 @@ public interface ArthurExtension {
         Class<?> loadClass(String name);
 
         /**
+         * Enable to add to native-image execution custom classes generated before the native-image execution.
+         * It can be common for proxies and classes created at runtime normally.
+         *
+         * @param name the class name.
+         * @param bytecode the class bytecode.
+         */
+        void registerGeneratedClass(final String name, final byte[] bytecode);
+
+        /**
          * Creates a stream of all classes (class, super classes and interfaces) for the specified class.
          * @param from the class to look the hierarchy for.
          * @return the class hierarchy.

@@ -24,6 +24,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +54,7 @@ public class DefautContext implements ArthurExtension.Context {
     private final Collection<ResourceBundleModel> bundles = new HashSet<>();
     private final Collection<DynamicProxyModel> dynamicProxyModels = new HashSet<>();
     private final Map<String, String> extensionProperties;
+    private final Map<String, byte[]> dynamicClasses = new HashMap<>();
     private boolean modified;
 
     @Override
@@ -68,6 +70,11 @@ public class DefautContext implements ArthurExtension.Context {
     @Override
     public <T> Collection<Class<? extends T>> findImplementations(final Class<T> parent) {
         return Collection.class.cast(implementationFinder.apply(parent));
+    }
+
+    @Override
+    public void registerGeneratedClass(final String name, final byte[] bytecode) {
+        dynamicClasses.put(name, bytecode);
     }
 
     @Override
