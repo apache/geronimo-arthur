@@ -44,7 +44,7 @@
 
     <!-- knights -->
     <jsch.version>0.1.55</jsch.version>
-    <graalvm.version>19.2.1</graalvm.version>
+    <graalvm.version>19.3.0</graalvm.version>
     <winegrower.version>1.0-SNAPSHOT</winegrower.version> <!-- search for NEEDS_WINEGROWER_RELEASE once released -->
 
     <!-- plugin versions/confs -->

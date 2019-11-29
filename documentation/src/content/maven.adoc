@@ -107,7 +107,7 @@ Here is the full list of available configuration.
 include::{generated_dir}/generated_nativeimage_mojo.adoc[]
 
 
-TIP: if you want to debug native image generation, you must add `com.oracle.substratevm:svm` dependency and add the `customOption` `--debug-attach`.
+TIP: if you want to debug native image generation, you must add `org.graalvm.nativeimage:svm` dependency and add the `customOption` `--debug-attach`.
 
 == What about docker?
 

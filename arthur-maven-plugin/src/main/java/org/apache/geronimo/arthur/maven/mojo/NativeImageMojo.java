@@ -536,7 +536,8 @@ public class NativeImageMojo extends ArthurMojo {
     }
 
     private boolean isNotSvm(final Artifact artifact) {
-        return !"com.oracle.substratevm".equals(artifact.getGroupId());
+        return !"com.oracle.substratevm".equals(artifact.getGroupId()) &&
+                !"org.graalvm.nativeimage".equals(artifact.getGroupId());
     }
 
     private Stream<? extends Map.Entry<? extends Artifact, Path>> resolveExtension() {

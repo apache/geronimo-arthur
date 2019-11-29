@@ -62,7 +62,7 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
             return new ImageFromDockerfile(
                     targetImage, Boolean.getBoolean("arthur.container.maven.deleteOnExit"))
                     .withDockerfileFromBuilder(builder -> builder.from(fromImage)
-                            .run("apt update && apt install -y gcc libc6-dev zlib1g-dev")
+                            .run("apt update && apt install -y gcc g++ libc6-dev zlib1g-dev")
                             .label("org.apache.geronimo.arthur.environment", "integration-tests")
                             .label("org.apache.geronimo.arthur.baseImage", fromImage)
                             .label("org.apache.geronimo.arthur.tag", tag))
