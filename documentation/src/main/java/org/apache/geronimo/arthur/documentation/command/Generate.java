@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -52,6 +54,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.geronimo.arthur.documentation.download.Downloads;
 import org.apache.geronimo.arthur.documentation.io.FolderConfiguration;
 import org.apache.geronimo.arthur.documentation.io.FolderVisitor;
 import org.apache.geronimo.arthur.documentation.mojo.MojoParser;
@@ -88,12 +91,15 @@ public class Generate {
 
             @Option("threads") @Default("${sys.processorCount}") final int threads,
 
+            @Option("download-source") final Path downloadSource,
+
             @Out final PrintStream stdout,
             @Err final PrintStream stderr,
 
             final AsciidocRenderer renderer,
             final FolderVisitor visitor,
-            final MojoParser mojoParser) {
+            final MojoParser mojoParser,
+            final Downloads downloads) {
         stdout.println("Generating the website in " + output);
 
         final Collection<Throwable> errors = new ArrayList<>();
@@ -128,6 +134,22 @@ public class Generate {
                     .attribute("generated_dir", workdir.toAbsolutePath().toString()))
                 .get();
 
+        final CountDownLatch downloadLatch;
+        if (downloadSource != null) {
+            downloadLatch = new CountDownLatch(1);
+            executor.execute(() -> {
+                try (final PrintStream stream = new PrintStream(Files.newOutputStream(downloadSource))) {
+                    downloads.update(stream);
+                } catch (final IOException e) {
+                    throw new IllegalStateException(e);
+                } finally {
+                    downloadLatch.countDown();
+                }
+            });
+        } else {
+            downloadLatch = null;
+        }
+
         executor.execute(() -> {
             try {
                 computedTemplatization.set(compileTemplate(templateConfiguration));
@@ -160,6 +182,15 @@ public class Generate {
                                 Paths.get(targetFilename) :
                                 targetFolder.resolve(targetFilename));
                         ensureExists(target.getParent());
+
+                        if (Objects.equals(file.toAbsolutePath(), downloadSource)) {
+                            try {
+                                downloadLatch.await();
+                            } catch (final InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
+
                         try {
                             final String read = read(file);
                             final Map<String, String> metadata = renderer.extractMetadata(read);

@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.apache.geronimo.arthur.documentation.download.Downloads;
 import org.apache.geronimo.arthur.documentation.editor.PathEditor;
 import org.apache.geronimo.arthur.documentation.io.ConsumedPrintStream;
 import org.apache.geronimo.arthur.documentation.io.FolderVisitor;
@@ -43,6 +44,8 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor(access = PRIVATE)
 public final class DocumentationGeneratorLauncher {
     public static void main(final String[] args) throws Exception {
+        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "32");
+
         final Map<Class<?>, Object> services = createServices().collect(toMap(Object::getClass, identity()));
         final SystemEnvironment env = new SystemEnvironment(services) {
             private final ConsumedPrintStream err = new ConsumedPrintStream(log::error);
@@ -80,6 +83,11 @@ public final class DocumentationGeneratorLauncher {
 
     private static Stream<Object> createServices() {
         final PathPredicates predicates = new PathPredicates();
-        return Stream.of(predicates, new AsciidocRenderer(), new FolderVisitor(predicates), new MojoParser());
+        return Stream.of(
+                predicates,
+                new AsciidocRenderer(),
+                new FolderVisitor(predicates),
+                new MojoParser(),
+                new Downloads());
     }
 }
