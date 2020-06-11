@@ -16,15 +16,8 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator.extension;
 
-import static java.util.Arrays.asList;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Stream;
-
 import org.apache.geronimo.arthur.api.RegisterClass;
+import org.apache.geronimo.arthur.api.RegisterClasses;
 import org.apache.geronimo.arthur.api.RegisterField;
 import org.apache.geronimo.arthur.api.RegisterMethod;
 import org.apache.geronimo.arthur.api.RegisterResource;
@@ -32,6 +25,14 @@ import org.apache.geronimo.arthur.spi.ArthurExtension;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static java.util.Arrays.asList;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 
 public class AnnotationExtension implements ArthurExtension {
     @Override
@@ -66,6 +67,23 @@ public class AnnotationExtension implements ArthurExtension {
                 })
                 .distinct()
                 .forEach(context::register);
+        context.findAnnotatedClasses(RegisterClasses.Entry.class).stream()
+                .map(it -> it.getAnnotation(RegisterClasses.Entry.class))
+                .flatMap(entry -> doRegisterEntry(context, entry))
+                .forEach(context::register);
+        context.findAnnotatedClasses(RegisterClasses.class).stream()
+                .flatMap(it -> Stream.of(it.getAnnotation(RegisterClasses.class).value()))
+                .flatMap(entry -> doRegisterEntry(context, entry))
+                .forEach(context::register);
+    }
+
+    private Stream<ClassReflectionModel> doRegisterEntry(final Context context, final RegisterClasses.Entry entry) {
+        try {
+            return register(!entry.className().isEmpty() ? context.loadClass(entry.className()) : entry.clazz(), entry.registration());
+        } catch (final IllegalStateException ise) {
+            // class not loadable, ignore
+            return Stream.empty();
+        }
     }
 
     private Stream<ClassReflectionModel> register(final Class<?> clazz, final RegisterClass config) {

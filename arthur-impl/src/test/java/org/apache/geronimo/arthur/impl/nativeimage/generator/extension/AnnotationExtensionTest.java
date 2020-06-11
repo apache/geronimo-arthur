@@ -16,23 +16,8 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator.extension;
 
-import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
-import javax.json.bind.config.PropertyOrderStrategy;
-
 import org.apache.geronimo.arthur.api.RegisterClass;
+import org.apache.geronimo.arthur.api.RegisterClasses;
 import org.apache.geronimo.arthur.api.RegisterField;
 import org.apache.geronimo.arthur.api.RegisterMethod;
 import org.apache.geronimo.arthur.api.RegisterResource;
@@ -43,7 +28,23 @@ import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.xbean.finder.AnnotationFinder;
 import org.apache.xbean.finder.archive.ClassesArchive;
+import org.apache.xbean.finder.filter.Filter;
+import org.apache.xbean.finder.util.Files;
 import org.junit.jupiter.api.Test;
+
+import javax.json.bind.Jsonb;
+import javax.json.bind.JsonbBuilder;
+import javax.json.bind.JsonbConfig;
+import javax.json.bind.config.PropertyOrderStrategy;
+import java.util.Collection;
+import java.util.Iterator;
+
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnnotationExtensionTest {
     @Test
@@ -89,11 +90,22 @@ class AnnotationExtensionTest {
                 assertTrue(reflections.hasNext());
                 assertEquals("{\"name\":\"" + JustTheClass.class.getName() + "\"}", jsonb.toJson(reflections.next()));
 
+                assertTrue(reflections.hasNext());
+                assertEquals("{\"name\":\"" + Filter.class.getName() + "\"}", jsonb.toJson(reflections.next()));
+
+                assertTrue(reflections.hasNext());
+                assertEquals("{\"name\":\"" + Files.class.getName() + "\"}", jsonb.toJson(reflections.next()));
+
                 assertFalse(reflections.hasNext());
             }
             assertEquals("myres1,myres2", context.getResources().stream().map(ResourceModel::getPattern).sorted().collect(joining(",")));
             assertEquals("another,org.bundle1,org.foo.2", context.getBundles().stream().map(ResourceBundleModel::getName).sorted().collect(joining(",")));
         }
+    }
+
+    @RegisterClasses.Entry(clazz = Filter.class)
+    @RegisterClasses.Entry(clazz = Files.class)
+    public static class OutProjectClassRegistration {
     }
 
     @RegisterResource(

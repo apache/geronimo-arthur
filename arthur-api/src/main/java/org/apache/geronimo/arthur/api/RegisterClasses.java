@@ -16,33 +16,40 @@
  */
 package org.apache.geronimo.arthur.api;
 
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+/**
+ * Enables to register classes which are not in the project itself.
+ */
 @Target(TYPE)
 @Retention(RUNTIME)
-public @interface RegisterClass {
-    boolean allDeclaredConstructors() default false;
-
-    boolean allPublicConstructors() default false;
-
-    boolean allDeclaredMethods() default false;
-
-    boolean allPublicMethods() default false;
-
-    boolean allDeclaredClasses() default false;
-
-    boolean allPublicClasses() default false;
-
-    boolean allDeclaredFields() default false;
-
-    boolean allPublicFields() default false;
+public @interface RegisterClasses {
+    Entry[] value();
 
     /**
-     * @return alias for allDeclared*.
+     * Represent a class registered through {@link RegisterClasses}.
      */
-    boolean all() default false;
+    @Retention(RUNTIME)
+    @Repeatable(RegisterClasses.class)
+    @interface Entry {
+        /**
+         * @return the class ref if accessible in the project.
+         */
+        Class<?> clazz() default Object.class;
+
+        /**
+         * @return the classname if not always accessible in the project.
+         */
+        String className() default "";
+
+        /**
+         * @return how to register the class in the graal build.
+         */
+        RegisterClass registration() default @RegisterClass;
+    }
 }
