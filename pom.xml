@@ -66,6 +66,9 @@
   <profiles>
     <profile>
       <id>integration-tests</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <modules>
         <module>integration-test</module>
       </modules>
