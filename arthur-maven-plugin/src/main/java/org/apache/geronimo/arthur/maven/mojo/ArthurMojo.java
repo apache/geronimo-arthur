@@ -16,14 +16,6 @@
  */
 package org.apache.geronimo.arthur.maven.mojo;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Locale.ROOT;
-import static java.util.Optional.ofNullable;
-
-import java.io.File;
-import java.nio.file.Path;
-import java.util.List;
-
 import org.apache.geronimo.arthur.impl.nativeimage.archive.Extractor;
 import org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstaller;
 import org.apache.geronimo.arthur.impl.nativeimage.installer.SdkmanGraalVMInstallerConfiguration;
@@ -41,6 +33,16 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static java.util.Collections.emptyMap;
+import static java.util.Locale.ROOT;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 
 public abstract class ArthurMojo extends AbstractMojo {
     /**
@@ -70,11 +72,12 @@ public abstract class ArthurMojo extends AbstractMojo {
      * In case Graal must be downloaded to get native-image, where to take it from.
      */
     @Parameter(property = "arthur.graalDownloadUrl",
-            defaultValue = "https://api.sdkman.io/2/broker/download/java/${graalVersion}-grl/${platform}")
+            defaultValue = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${graalSimpleVersion}/graalvm-ce-java${graalJavaVersion}-${githubPlatform}-${graalSimpleVersion}.tar.gz")
     private String graalDownloadUrl;
 
     /**
      * In case Graal must be downloaded to get native-image, which version to download.
+     * It contains the graal version and can be suffixed by the graal java version prefixed with "r" (as on sdkman).
      */
     @Parameter(property = "arthur.graalVersion", defaultValue = "20.1.0.r8")
     private String graalVersion;
@@ -113,10 +116,12 @@ public abstract class ArthurMojo extends AbstractMojo {
     protected SdkmanGraalVMInstaller createInstaller() {
         final String graalPlatform = buildPlatform();
         final Extractor extractor = new Extractor();
+        final String url = buildDownloadUrl(graalPlatform);
+        getLog().debug("Graal URL: " + url);
         return new SdkmanGraalVMInstaller(SdkmanGraalVMInstallerConfiguration.builder()
                 .offline(offline)
                 .inheritIO(isInheritIO())
-                .url(buildDownloadUrl(graalPlatform))
+                .url(url)
                 .version(graalVersion)
                 .platform(graalPlatform)
                 .gav(buildCacheGav(graalPlatform))
@@ -175,9 +180,28 @@ public abstract class ArthurMojo extends AbstractMojo {
     }
 
     private String buildDownloadUrl(final String graalPlatform) {
+        // defaultValue = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${graalSimpleVersion}/graalvm-ce-java${graalJavaVersion}-${githubPlatform}-${graalSimpleVersion}.tar.gz")
+        //            // defaultValue = "https://api.sdkman.io/2/broker/download/java/${graalVersion}-grl/${platform}")
+        if (graalDownloadUrl.startsWith("https://api.sdkman.io/2/broker/download/java/")) {
+            return graalDownloadUrl
+                    .replace("${graalVersion}", graalVersion)
+                    .replace("${platform}", graalPlatform);
+        }
+        // else assume github
+        final String[] versionSegments = graalVersion.split("\\.");
+        final boolean versionIncludesJavaVersion = versionSegments[versionSegments.length - 1].startsWith("r");
+        final String graalSimpleVersion = versionIncludesJavaVersion ?
+                Stream.of(versionSegments).limit(versionSegments.length - 1).collect(joining(".")) :
+                graalVersion;
+        final String graalJavaVersion = versionIncludesJavaVersion ?
+                versionSegments[versionSegments.length - 1].substring(1) :
+                System.getProperty("java.version", "1.8").startsWith("8") ? "8" : "11";
+        final String githubPlatform = graalPlatform.contains("win") ?
+                "windows-amd64" : (graalPlatform.contains("linux") ? "linux-amd64" : "darwin-amd64");
         return graalDownloadUrl
-                .replace("${graalVersion}", graalVersion)
-                .replace("${platform}", graalPlatform);
+                .replace("${graalSimpleVersion}", graalSimpleVersion)
+                .replace("${graalJavaVersion}", graalJavaVersion)
+                .replace("${githubPlatform}", githubPlatform);
     }
 
     private String buildPlatform() {
@@ -188,5 +212,12 @@ public abstract class ArthurMojo extends AbstractMojo {
                 ofNullable(System.getProperty("sun.arch.data.model"))
                         .orElseGet(() -> System.getProperty("os.arch", "64").replace("amd", "")))
                 .toLowerCase(ROOT);
+    }
+
+    public static void main(String[] args) {
+        System.out.println((System.getProperty("os.name", "linux") +
+                ofNullable(System.getProperty("sun.arch.data.model"))
+                        .orElseGet(() -> System.getProperty("os.arch", "64").replace("amd", "")))
+                .toLowerCase(ROOT));
     }
 }
