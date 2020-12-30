@@ -16,12 +16,12 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import lombok.Data;
+import org.apache.geronimo.arthur.impl.nativeimage.generator.ConfigurationGenerator;
+import org.apache.geronimo.arthur.impl.nativeimage.graal.CommandGenerator;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,15 +33,12 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.apache.geronimo.arthur.impl.nativeimage.generator.ConfigurationGenerator;
-import org.apache.geronimo.arthur.impl.nativeimage.generator.DefautContext;
-import org.apache.geronimo.arthur.impl.nativeimage.graal.CommandGenerator;
-import org.apache.geronimo.arthur.spi.ArthurExtension;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import lombok.Data;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CommandGeneratorTest {
     @Test
@@ -61,7 +58,7 @@ class CommandGeneratorTest {
         new ConfigurationGenerator(
                 singletonList(context -> context.registerGeneratedClass("org.foo.Bar", new byte[]{1, 2, 3})),
                 configuration, workingDirectory,
-                (o, writer) -> {}, k -> emptyList(), k -> emptyList(),
+                (o, writer) -> {}, k -> emptyList(), k -> emptyList(), k -> emptyList(),
                 (Function<Class<?>, Collection<Class<?>>>) k -> emptyList(), emptyMap()
         ).run();
         assertArrayEquals(new byte[]{1, 2, 3}, Files.readAllBytes(workingDirectory.resolve("dynamic_classes/org/foo/Bar.class")));

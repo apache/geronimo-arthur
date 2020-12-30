@@ -63,3 +63,12 @@ public class All {
 ---
 
 Previous: link:documentation.html[Documentation] Next: link:spi.html[Arthur SPI]
+
+== Custom annotation marker
+
+You can set `extension.annotation.custom.annotations.class` to a list of custom annotations set on classes to replace `RegisterClass`.
+Exact configuration value follows this pattern: `<custom annotation fully qualified name>[:[<RegisterClass attribute>=value]|*]?`.
+A common example is: `com.foo.MyAnnot1:all=true,com.foo.MyAnnot2:allPublicMethods=true|allPublicFields=true`.
+
+Similarly `extension.annotation.custom.annotations.properties` enables to configure the same thing but to find classes from marked fields or methods.
+It is very common with unmanaged `@ConfigProperty` classes for example.

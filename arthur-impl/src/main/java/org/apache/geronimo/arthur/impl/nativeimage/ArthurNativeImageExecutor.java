@@ -16,10 +16,17 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage;
 
-import static java.util.Optional.ofNullable;
+import lombok.Builder;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.geronimo.arthur.impl.nativeimage.generator.ConfigurationGenerator;
+import org.apache.geronimo.arthur.impl.nativeimage.graal.CommandGenerator;
+import org.apache.geronimo.arthur.impl.nativeimage.process.ProcessExecutor;
+import org.apache.geronimo.arthur.spi.ArthurExtension;
 
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -29,14 +36,7 @@ import java.util.ServiceLoader;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import org.apache.geronimo.arthur.impl.nativeimage.generator.ConfigurationGenerator;
-import org.apache.geronimo.arthur.impl.nativeimage.graal.CommandGenerator;
-import org.apache.geronimo.arthur.impl.nativeimage.process.ProcessExecutor;
-import org.apache.geronimo.arthur.spi.ArthurExtension;
-
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static java.util.Optional.ofNullable;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -48,7 +48,8 @@ public class ArthurNativeImageExecutor implements Runnable {
         final ConfigurationGenerator configurationGenerator = new ConfigurationGenerator(
                 loadExtensions(),
                 configuration.configuration, configuration.workingDirectory, configuration.jsonSerializer,
-                configuration.annotatedClassFinder, configuration.annotatedMethodFinder, configuration.implementationFinder,
+                configuration.annotatedClassFinder, configuration.annotatedFieldFinder,
+                configuration.annotatedMethodFinder, configuration.implementationFinder,
                 configuration.extensionProperties);
         configurationGenerator.run();
 
@@ -72,6 +73,7 @@ public class ArthurNativeImageExecutor implements Runnable {
         private final Path workingDirectory;
         private final Function<Class<? extends Annotation>, Collection<Class<?>>> annotatedClassFinder;
         private final Function<Class<? extends Annotation>, Collection<Method>> annotatedMethodFinder;
+        private final Function<Class<? extends Annotation>, Collection<Field>> annotatedFieldFinder;
         private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
         private final ArthurNativeImageConfiguration configuration;
         private final Map<String, String> extensionProperties;

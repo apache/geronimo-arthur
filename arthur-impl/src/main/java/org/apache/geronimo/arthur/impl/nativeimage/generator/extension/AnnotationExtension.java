@@ -26,13 +26,18 @@ import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 public class AnnotationExtension implements ArthurExtension {
     @Override
@@ -42,6 +47,35 @@ public class AnnotationExtension implements ArthurExtension {
 
     @Override
     public void execute(final Context context) {
+        ofNullable(context.getProperty("extension.annotation.custom.annotations.class"))
+                .ifPresent(names -> Stream.of(names.split(","))
+                        .map(String::trim)
+                        .filter(it -> !it.isEmpty())
+                        .forEach(config -> { // syntax is: <annotation fqn>:<RegisterClass method=true|false>, if only fqn then all=true is supposed
+                            final int sep = config.indexOf(':');
+                            final String fqn = sep < 0 ? config : config.substring(0, sep);
+                            final RegisterClass registerClass = newRegisterClass(sep < 0 ? "all=true" : config.substring(sep + 1));
+                            context.findAnnotatedClasses(context.loadClass(fqn.trim()).asSubclass(Annotation.class)).stream()
+                                    .flatMap(clazz -> register(clazz, registerClass))
+                                    .forEach(context::register);
+                        }));
+        ofNullable(context.getProperty("extension.annotation.custom.annotations.properties"))
+                .ifPresent(names -> Stream.of(names.split(","))
+                        .map(String::trim)
+                        .filter(it -> !it.isEmpty())
+                        .forEach(config -> { // syntax is: <annotation fqn>:<RegisterClass method=true|false>, if only fqn then all=true is supposed
+                            final int sep = config.indexOf(':');
+                            final String fqn = sep < 0 ? config : config.substring(0, sep);
+                            final RegisterClass registerClass = newRegisterClass(sep < 0 ? "all=true" : config.substring(sep + 1));
+                            final Class<? extends Annotation> annot = context.loadClass(fqn.trim()).asSubclass(Annotation.class);
+                            Stream.concat(
+                                    context.findAnnotatedMethods(annot).stream().map(Method::getDeclaringClass),
+                                    context.findAnnotatedFields(annot).stream().map(Field::getDeclaringClass))
+                                    .distinct()
+                                    .flatMap(clazz -> register(clazz, registerClass))
+                                    .forEach(context::register);
+                        }));
+
         context.findAnnotatedClasses(RegisterClass.class).stream()
                 .flatMap(clazz -> register(clazz, clazz.getAnnotation(RegisterClass.class)))
                 .forEach(context::register);
@@ -167,5 +201,63 @@ public class AnnotationExtension implements ArthurExtension {
     @Override
     public boolean equals(final Object obj) {
         return obj != null && AnnotationExtension.class == obj.getClass();
+    }
+
+    private RegisterClass newRegisterClass(final String inlineConf) {
+        final Map<String, Boolean> confs = Stream.of(inlineConf.split("\\|"))
+                .map(it -> it.split("="))
+                .collect(toMap(it -> it[0], it -> it.length < 2 || Boolean.parseBoolean(it[1])));
+        return new RegisterClass() {
+
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return RegisterClass.class;
+            }
+
+            @Override
+            public boolean allDeclaredConstructors() {
+                return confs.getOrDefault("allDeclaredConstructors", false);
+            }
+
+            @Override
+            public boolean allPublicConstructors() {
+                return confs.getOrDefault("allPublicConstructors", false);
+            }
+
+            @Override
+            public boolean allDeclaredMethods() {
+                return confs.getOrDefault("allDeclaredMethods", false);
+            }
+
+            @Override
+            public boolean allPublicMethods() {
+                return confs.getOrDefault("allPublicMethods", false);
+            }
+
+            @Override
+            public boolean allDeclaredClasses() {
+                return confs.getOrDefault("allDeclaredClasses", false);
+            }
+
+            @Override
+            public boolean allPublicClasses() {
+                return confs.getOrDefault("allPublicClasses", false);
+            }
+
+            @Override
+            public boolean allDeclaredFields() {
+                return confs.getOrDefault("allDeclaredFields", false);
+            }
+
+            @Override
+            public boolean allPublicFields() {
+                return confs.getOrDefault("allPublicFields", false);
+            }
+
+            @Override
+            public boolean all() {
+                return confs.getOrDefault("all", false);
+            }
+        };
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.geronimo.arthur.spi;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Objects;
@@ -65,6 +66,14 @@ public interface ArthurExtension {
          * @return the list of methods with this annotation.
          */
         <T extends Annotation> Collection<Method> findAnnotatedMethods(Class<T> annotation);
+
+        /**
+         * Simular to {@link #findAnnotatedMethods(Class)} but at field level.
+         * @param annotation the marker annotation to look for.
+         * @param <T> the annotation type.
+         * @return the list of methods with this annotation.
+         */
+        <T extends Annotation> Collection<Field> findAnnotatedFields(Class<T> annotation);
 
         /**
          * Find subclasses and implementation of a parent.

@@ -16,12 +16,12 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
-import static java.util.Arrays.asList;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,6 +49,7 @@ public class DefautContext implements ArthurExtension.Context {
     private final ArthurNativeImageConfiguration configuration;
     private final Function<Class<? extends Annotation>, Collection<Class<?>>> annotatedClassesFinder;
     private final Function<Class<? extends Annotation>, Collection<Method>> methodFinder;
+    private final Function<Class<? extends Annotation>, Collection<Field>> fieldFinder;
     private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
     private final Collection<ClassReflectionModel> reflections = new HashSet<>();
     private final Collection<ResourceModel> resources = new HashSet<>();
@@ -66,6 +67,11 @@ public class DefautContext implements ArthurExtension.Context {
     @Override
     public <T extends Annotation> Collection<Method> findAnnotatedMethods(final Class<T> annotation) {
         return methodFinder.apply(annotation);
+    }
+
+    @Override
+    public <T extends Annotation> Collection<Field> findAnnotatedFields(final Class<T> annotation) {
+        return fieldFinder.apply(annotation);
     }
 
     @Override
@@ -127,7 +133,7 @@ public class DefautContext implements ArthurExtension.Context {
 
     @Override
     public String getProperty(final String key) {
-        return extensionProperties.get(key);
+        return extensionProperties == null ? null : extensionProperties.get(key);
     }
 
     @Override

@@ -27,6 +27,7 @@ import org.apache.geronimo.arthur.spi.model.ResourcesModel;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,11 +60,13 @@ public class ConfigurationGenerator implements Runnable {
     private final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder;
     private final Function<Class<?>, Collection<Class<?>>> implementationFinder;
     private final Function<Class<? extends Annotation>, Collection<Method>> methodFinder;
+    private final Function<Class<? extends Annotation>, Collection<Field>> fieldFinder;
     private final Map<String, String> extensionProperties;
 
     public ConfigurationGenerator(final Iterable<ArthurExtension> extensions, final ArthurNativeImageConfiguration configuration,
                                   final Path workingDirectory, final BiConsumer<Object, Writer> jsonSerializer,
                                   final Function<Class<? extends Annotation>, Collection<Class<?>>> classFinder,
+                                  final Function<Class<? extends Annotation>, Collection<Field>> fieldFinder,
                                   final Function<Class<? extends Annotation>, Collection<Method>> methodFinder,
                                   final Function<Class<?>, Collection<Class<?>>> implementationFinder,
                                   final Map<String, String> extensionProperties) {
@@ -72,6 +75,7 @@ public class ConfigurationGenerator implements Runnable {
         this.workingDirectory = workingDirectory;
         this.jsonSerializer = jsonSerializer;
         this.classFinder = classFinder;
+        this.fieldFinder = fieldFinder;
         this.methodFinder = methodFinder;
         this.implementationFinder = implementationFinder;
         this.extensionProperties = extensionProperties;
@@ -83,7 +87,7 @@ public class ConfigurationGenerator implements Runnable {
         final HashMap<String, String> properties = ofNullable(this.extensionProperties).map(HashMap::new).orElseGet(HashMap::new);
         properties.put("workingDirectory", workingDirectory.toAbsolutePath().toString());
 
-        final DefautContext context = new DefautContext(configuration, classFinder, methodFinder, implementationFinder, properties);
+        final DefautContext context = new DefautContext(configuration, classFinder, methodFinder, fieldFinder, implementationFinder, properties);
         for (final ArthurExtension extension : extensions) {
             log.debug("Executing {}", extension);
             context.setModified(false);

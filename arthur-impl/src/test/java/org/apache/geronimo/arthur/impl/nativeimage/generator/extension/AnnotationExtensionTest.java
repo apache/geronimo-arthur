@@ -36,9 +36,14 @@ import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.json.bind.JsonbConfig;
 import javax.json.bind.config.PropertyOrderStrategy;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 import java.util.Collection;
 import java.util.Iterator;
 
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import static java.util.Collections.singletonMap;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
@@ -54,6 +59,7 @@ class AnnotationExtensionTest {
         final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(),
                 finder::findAnnotatedClasses,
                 finder::findAnnotatedMethods,
+                finder::findAnnotatedFields,
                 p -> Collection.class.cast(finder.findImplementations(p)),
                 null);
         new AnnotationExtension().execute(context);
@@ -101,6 +107,36 @@ class AnnotationExtensionTest {
             assertEquals("myres1,myres2", context.getResources().stream().map(ResourceModel::getPattern).sorted().collect(joining(",")));
             assertEquals("another,org.bundle1,org.foo.2", context.getBundles().stream().map(ResourceBundleModel::getName).sorted().collect(joining(",")));
         }
+    }
+
+    @Test
+    void customAnnot() throws Exception {
+        final ClassesArchive archive = new ClassesArchive(MarkedRegister.class);
+        final AnnotationFinder finder = new AnnotationFinder(archive);
+        final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(),
+                finder::findAnnotatedClasses,
+                finder::findAnnotatedMethods,
+                finder::findAnnotatedFields,
+                p -> Collection.class.cast(finder.findImplementations(p)),
+                singletonMap("extension.annotation.custom.annotations.class", MyRegister.class.getName() + ":allDeclaredFields=true"));
+        new AnnotationExtension().execute(context);
+        try (final Jsonb jsonb = JsonbBuilder.create(
+                new JsonbConfig().withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
+            assertTrue(context.isModified());
+            final Iterator<ClassReflectionModel> reflections = context.getReflections().iterator();
+            assertTrue(reflections.hasNext());
+            assertEquals("{\"allDeclaredFields\":true,\"name\":\"org.apache.geronimo.arthur.impl.nativeimage.generator.extension.AnnotationExtensionTest$MarkedRegister\"}", jsonb.toJson(reflections.next()));
+            assertFalse(reflections.hasNext());
+        }
+    }
+
+    @Target(TYPE)
+    @Retention(RUNTIME)
+    public @interface MyRegister {
+    }
+
+    @MyRegister
+    public static class MarkedRegister {
     }
 
     @RegisterClasses.Entry(clazz = Filter.class)

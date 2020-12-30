@@ -50,7 +50,7 @@ class DefautContextTest {
     })
     void predicate(final String prop, final String value, final ArthurExtension.PredicateType type, final boolean result) {
         final Optional<Predicate<String>> predicate = new DefautContext(
-                new ArthurNativeImageConfiguration(), null, null, null,
+                new ArthurNativeImageConfiguration(), null, null, null, null,
                 "null".equals(prop) ? emptyMap() : singletonMap("includes", prop))
                 .createPredicate("includes", type);
         assertEquals(result, !predicate.isPresent() || predicate.orElseThrow(IllegalStateException::new).test(value));
@@ -81,13 +81,13 @@ class DefautContextTest {
         if (!"null".equals(excludesProp)) {
             map.put("excludes", excludesProp);
         }
-        final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(), null, null, null, map);
+        final DefautContext context = new DefautContext(new ArthurNativeImageConfiguration(), null, null, null, null, map);
         assertEquals(result, context.createIncludesExcludes("", type).test(value));
     }
 
     @Test
     void findHierarchy() {
-        final ArthurExtension.Context context = new DefautContext(new ArthurNativeImageConfiguration(), null, null, null, emptyMap());
+        final ArthurExtension.Context context = new DefautContext(new ArthurNativeImageConfiguration(), null, null, null, null, emptyMap());
         assertEquals(singletonList(StandaloneClass.class), context.findHierarchy(StandaloneClass.class).collect(toList()));
         assertEquals(asList(ChildClass.class, StandaloneClass.class), context.findHierarchy(ChildClass.class).collect(toList()));
         assertEquals(asList(ImplClass.class, StandaloneInterface.class), context.findHierarchy(ImplClass.class).collect(toList()));
