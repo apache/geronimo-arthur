@@ -67,9 +67,6 @@ public class ArthurNativeImageConfiguration {
     @GraalCommandPart(order = 12, template = "-H:+ReportExceptionStackTraces")
     private boolean reportExceptionStackTraces = true;
 
-    @GraalCommandPart(order = 13, template = "-H:+TraceClassInitialization")
-    private boolean traceClassInitialization = true;
-
     @GraalCommandPart(order = 14, template = "-H:+PrintClassInitialization")
     private boolean printClassInitialization = false;
 

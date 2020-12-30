@@ -16,10 +16,12 @@
  */
 package org.apache.geronimo.arthur.integrationtests.container;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Image;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
@@ -46,14 +48,16 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
     // we can run apt update && apt install -y gcc libc6-dev zlib1g-dev in start() but it is slow so we cache it through an image
     // note: we don't clean the image to be able to reuse it and speed up integration-tests, use -Darthur.container.maven.deleteOnExit=true to auto clean it
     private static String getOrCreateAutoBaseImage() {
-        final String fromImage = System.getProperty("arthur.container.maven.baseimage", "maven:3.6.2-jdk-8-slim");
+        final String fromImage = System.getProperty("arthur.container.maven.baseimage", "maven:3.6.3-jdk-8-slim");
         // creating a tag from the source image to ensure we can have multiple test versions (maven/jdk matrix)
         final String tag = fromImage.split(":")[1];
         final String targetImage = "apache/geronimo/arthur/maven-test-base:" + tag;
 
         final DockerClient client = DockerClientFactory.instance().client();
         try {
-            if (!client.listImagesCmd().withImageNameFilter(targetImage).exec().isEmpty()) {
+            // note that docker daemon can ignore filter parameter so let's check it exactly
+            final List<Image> images = client.listImagesCmd().withImageNameFilter(targetImage).exec();
+            if (images.size() == 1) {
                 log.info("Found '{}' image, reusing it", targetImage);
                 return targetImage;
             }

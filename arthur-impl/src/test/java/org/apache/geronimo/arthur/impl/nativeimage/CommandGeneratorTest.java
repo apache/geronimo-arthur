@@ -50,7 +50,6 @@ class CommandGeneratorTest {
         configuration.setEnforceMaxRuntimeCompileMethods(false);
         configuration.setAddAllCharsets(false);
         configuration.setReportExceptionStackTraces(false);
-        configuration.setTraceClassInitialization(false);
         configuration.setPrintClassInitialization(false);
         configuration.setBuildStaticImage(false);
         configuration.setAllowIncompleteClasspath(false);
@@ -94,7 +93,6 @@ class CommandGeneratorTest {
         filledConfig.setEnforceMaxRuntimeCompileMethods(false);
         filledConfig.setAddAllCharsets(false);
         filledConfig.setReportExceptionStackTraces(false);
-        filledConfig.setTraceClassInitialization(false);
         filledConfig.setPrintClassInitialization(true);
         filledConfig.setFallbackMode(ArthurNativeImageConfiguration.FallbackMode.auto);
         filledConfig.setBuildStaticImage(false);
@@ -113,7 +111,6 @@ class CommandGeneratorTest {
                                 "native-image", "-classpath",
                                 "-H:MaxRuntimeCompileMethods=1000", "-H:+EnforceMaxRuntimeCompileMethods",
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
-                                "-H:+TraceClassInitialization",
                                 "--no-fallback", "--static", "--allow-incomplete-classpath",
                                 "--report-unsupported-elements-at-runtime", "--enable-all-security-services",
                                 "--no-server", "main", "main.graal.exec")),
@@ -123,7 +120,6 @@ class CommandGeneratorTest {
                                 "native-image", "-classpath", "foo" + File.pathSeparator + "bar",
                                 "-H:MaxRuntimeCompileMethods=1000", "-H:+EnforceMaxRuntimeCompileMethods",
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
-                                "-H:+TraceClassInitialization",
                                 "--no-fallback", "--static", "--allow-incomplete-classpath",
                                 "--report-unsupported-elements-at-runtime", "--enable-all-security-services",
                                 "--no-server", "main", "main.graal.exec")),

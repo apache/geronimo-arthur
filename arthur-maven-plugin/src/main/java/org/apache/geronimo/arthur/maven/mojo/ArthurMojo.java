@@ -79,7 +79,7 @@ public abstract class ArthurMojo extends AbstractMojo {
      * In case Graal must be downloaded to get native-image, which version to download.
      * It contains the graal version and can be suffixed by the graal java version prefixed with "r" (as on sdkman).
      */
-    @Parameter(property = "arthur.graalVersion", defaultValue = "20.1.0.r8")
+    @Parameter(property = "arthur.graalVersion", defaultValue = "20.3.0.r8")
     private String graalVersion;
 
     /**

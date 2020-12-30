@@ -165,12 +165,6 @@ public class NativeImageMojo extends ArthurMojo {
     private boolean reportExceptionStackTraces;
 
     /**
-     * Should class initialition be tracked.
-     */
-    @Parameter(property = "arthur.traceClassInitialization", defaultValue = "true")
-    private boolean traceClassInitialization;
-
-    /**
      * Should initialiation of classes be printed - mainly for debug purposes.
      */
     @Parameter(property = "arthur.printClassInitialization", defaultValue = "false")
