@@ -60,7 +60,7 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- just for the reactor -->
+    <!-- just for the reactor ordering -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>arthur-maven-plugin</artifactId>
@@ -82,6 +82,12 @@
     <dependency>
       <groupId>${project.groupId}.knights</groupId>
       <artifactId>winegrower-knight</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}.knights</groupId>
+      <artifactId>openwebbeans-knight</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

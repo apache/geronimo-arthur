@@ -16,10 +16,13 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
-import static java.util.Collections.singletonList;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
+import org.apache.geronimo.arthur.spi.ArthurExtension;
+import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
+import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
+import org.apache.geronimo.arthur.spi.model.ResourcesModel;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -30,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,13 +42,12 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
-import org.apache.geronimo.arthur.spi.ArthurExtension;
-import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
-import org.apache.geronimo.arthur.spi.model.ResourcesModel;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static java.util.Collections.singletonList;
+import static java.util.Comparator.comparing;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -103,7 +106,14 @@ public class ConfigurationGenerator implements Runnable {
             log.info("Creating reflection model '{}'", json);
             try (final Writer writer = Files.newBufferedWriter(
                     json, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
-                jsonSerializer.accept(context.getReflections(), writer);
+                jsonSerializer.accept(
+                        context.getReflections().stream()
+                                .collect(groupingBy(ClassReflectionModel::getName))
+                                .values().stream()
+                                .map(this::merge)
+                                .sorted(comparing(ClassReflectionModel::getName))
+                                .collect(toList()),
+                        writer);
             }
             context.addReflectionConfigFile(json.toAbsolutePath().toString());
         }
@@ -165,6 +175,39 @@ public class ConfigurationGenerator implements Runnable {
                 ).distinct().collect(toList()));
             }
         }
+    }
+
+    private ClassReflectionModel merge(final List<ClassReflectionModel> classReflectionModels) {
+        final Iterator<ClassReflectionModel> modelIterator = classReflectionModels.iterator();
+        final ClassReflectionModel model = modelIterator.next();
+        while (modelIterator.hasNext()) {
+            final ClassReflectionModel next = modelIterator.next();
+            if (next.getAllDeclaredClasses()) {
+                model.setAllDeclaredClasses(true);
+            }
+            if (next.getAllDeclaredFields()) {
+                model.setAllDeclaredFields(true);
+            }
+            if (next.getAllDeclaredConstructors()) {
+                model.setAllDeclaredConstructors(true);
+            }
+            if (next.getAllDeclaredMethods()) {
+                model.setAllDeclaredMethods(true);
+            }
+            if (next.getAllPublicMethods()) {
+                model.setAllPublicMethods(true);
+            }
+            if (next.getAllPublicFields()) {
+                model.setAllPublicFields(true);
+            }
+            if (next.getAllPublicConstructors()) {
+                model.setAllPublicConstructors(true);
+            }
+            if (next.getAllPublicClasses()) {
+                model.setAllPublicClasses(true);
+            }
+        }
+        return model;
     }
 
     private void ensureWorkingDirectoryExists() throws IOException {

@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -63,7 +64,6 @@ import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugins.annotations.Component;
@@ -440,6 +440,7 @@ public class NativeImageMojo extends ArthurMojo {
                                     .jsonSerializer(jsonb::toJson)
                                     .annotatedClassFinder(finder::findAnnotatedClasses)
                                     .annotatedMethodFinder(finder::findAnnotatedMethods)
+                                    .extensionProperties(getExtensionProperties())
                                     .implementationFinder(p -> {
                                         if (finderLinked.compareAndSet(false, true)) {
                                             finder.enableFindImplementations().enableFindSubclasses();
@@ -487,6 +488,12 @@ public class NativeImageMojo extends ArthurMojo {
                 helper.attachArtifact(project, attachType, new File(output));
             }
         }
+    }
+
+    private Map<String, String> getExtensionProperties() {
+        final Map<String, String> props = extensionProperties == null ? new HashMap<>() : new HashMap<>(extensionProperties);
+        props.putIfAbsent("classes", project.getBuild().getOutputDirectory());
+        return props;
     }
 
     private Predicate<Artifact> createScanningFilter() {

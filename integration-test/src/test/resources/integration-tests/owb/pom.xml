@@ -17,30 +17,23 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="
+            http://maven.apache.org/POM/4.0.0
+            http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>knights</artifactId>
-    <groupId>org.apache.geronimo.arthur.knights</groupId>
-    <version>1.0.1-SNAPSHOT</version>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>21</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>openwebbeans-knight</artifactId>
-  <name>Arthur :: Knights :: OpenWebBeans</name>
+  <groupId>org.apache.geronimo.arthur.integrationtests</groupId>
+  <artifactId>owb</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>Arthur :: Integration Tests :: OWB</name>
 
-  <properties>
-    <geronimo-arthur.shortname>knight.openwebbeans</geronimo-arthur.shortname>
-  </properties>
-
+  <!-- not important to not reuse build versions, should be stable -->
   <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.geronimo.arthur</groupId>
-      <artifactId>arthur-spi</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.apache.geronimo.specs</groupId>
       <artifactId>geronimo-jcdi_2.0_spec</artifactId>
@@ -71,11 +64,31 @@
       <artifactId>openwebbeans-se</artifactId>
       <version>2.0.21-SNAPSHOT</version>
     </dependency>
-    <dependency>
-      <groupId>org.graalvm.nativeimage</groupId>
-      <artifactId>svm</artifactId>
-      <version>${graalvm.version}</version>
-      <scope>provided</scope>
-    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler-plugin.version}</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.geronimo.arthur</groupId>
+        <artifactId>arthur-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <main>org.apache.geronimo.arthur.integrationtests.OWB</main>
+          <graalExtensions>
+            <graalExtension>openwebbeans</graalExtension>
+          </graalExtensions>
+          <graalCacheGav>org.apache.geronimo.arthur.cache:graal-integrationtests</graalCacheGav>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -46,6 +46,9 @@ class MavenTest {
     @Spec(expectedOutput = "Cui-yère")
     void cuilliere() {}
 
+    @Test
+    @Spec(expectedOutput = "counter=1, from proxy=from proxy")
+    void owb() {}
 
     @Test
     @Spec(expectedOutput = "Starting org.apache.geronimo.arthur.integrationtests.Application")

@@ -180,8 +180,6 @@ public abstract class ArthurMojo extends AbstractMojo {
     }
 
     private String buildDownloadUrl(final String graalPlatform) {
-        // defaultValue = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${graalSimpleVersion}/graalvm-ce-java${graalJavaVersion}-${githubPlatform}-${graalSimpleVersion}.tar.gz")
-        //            // defaultValue = "https://api.sdkman.io/2/broker/download/java/${graalVersion}-grl/${platform}")
         if (graalDownloadUrl.startsWith("https://api.sdkman.io/2/broker/download/java/")) {
             return graalDownloadUrl
                     .replace("${graalVersion}", graalVersion)
@@ -212,12 +210,5 @@ public abstract class ArthurMojo extends AbstractMojo {
                 ofNullable(System.getProperty("sun.arch.data.model"))
                         .orElseGet(() -> System.getProperty("os.arch", "64").replace("amd", "")))
                 .toLowerCase(ROOT);
-    }
-
-    public static void main(String[] args) {
-        System.out.println((System.getProperty("os.name", "linux") +
-                ofNullable(System.getProperty("sun.arch.data.model"))
-                        .orElseGet(() -> System.getProperty("os.arch", "64").replace("amd", "")))
-                .toLowerCase(ROOT));
     }
 }

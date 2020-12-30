@@ -19,6 +19,7 @@ package org.apache.geronimo.arthur.impl.nativeimage.generator;
 import static java.util.Arrays.asList;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -119,7 +120,9 @@ public class DefautContext implements ArthurExtension.Context {
         if (configuration.getInitializeAtBuildTime() == null) {
             configuration.setInitializeAtBuildTime(new ArrayList<>());
         }
-        configuration.getInitializeAtBuildTime().addAll(asList(classes));
+        configuration.getInitializeAtBuildTime().addAll(Stream.of(classes)
+                .filter(it -> !configuration.getInitializeAtBuildTime().contains(it))
+                .collect(toList()));
     }
 
     @Override
@@ -156,7 +159,8 @@ public class DefautContext implements ArthurExtension.Context {
 
     @Override
     public Optional<Predicate<String>> createPredicate(final String property, final ArthurExtension.PredicateType type) {
-        return ofNullable(getProperty(property)).flatMap(ex -> Stream.of(ex.split(","))
+        return ofNullable(getProperty(property))
+                .flatMap(ex -> Stream.of(ex.split(","))
                 .map(String::trim)
                 .filter(it -> !it.isEmpty())
                 .map(it -> of((Predicate<String>) n -> type.test(it, n)))

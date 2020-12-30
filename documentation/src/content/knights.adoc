@@ -22,6 +22,8 @@ The extensions are generally responsible to generate a valid configuration to le
 == Available knights
 
 - link:jsch-knight.html[JSch]: it contains some end user API integrated with built-in extensions to simplify application graal-ification,
+- link:winegrower-knight.html[Winegrower]: Apache winegrower (Cloud OSGi runtime) support.
+- link:openwebbeans-knight.html[OpenWebBeans]: Apache OpenWebBeans (CDI SE runtime) support.
 
 == Configure a Knight in Arthur Maven plugin
 

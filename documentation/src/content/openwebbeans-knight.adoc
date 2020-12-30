@@ -1,0 +1,121 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Arthur OpenWebBeans Knights
+
+Arthur OpenWebBeans knight is responsible to support Apache OpenWebBeans.
+It preconfigures the most of the reflection and resource inclusion.
+
+It assumes you use `openwebbeans-se` in your project.
+Here is a sample dependencies block for a simple SCR application:
+
+[source,xml]
+----
+<dependencies>
+  <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-jcdi_2.0_spec</artifactId>
+      <version>1.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-el_2.2_spec</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-annotation_1.3_spec</artifactId>
+      <version>1.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-atinject_1.0_spec</artifactId>
+      <version>1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-interceptor_1.2_spec</artifactId>
+      <version>1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.openwebbeans</groupId>
+      <artifactId>openwebbeans-se</artifactId>
+      <version>2.0.21</version>
+    </dependency>
+</dependencies>
+----
+
+IMPORTANT: this only works out of the box with OpenWebBeans 2.0.21 or later. You'll need to tune the scanner service yourself for older versions.
+
+== Coordinates
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.apache.geronimo.arthur.knights</groupId>
+  <artifactId>openwebbeans-knight</artifactId>
+  <version>${arthur.version}</version>
+</dependency>
+----
+
+== Usage
+
+To make a CDI application compatible with `native-image` there are a few necessary steps to do:
+
+. Generate all CDI proxies (normal scope beans, intercepted/decorated beans)
+. Include the proxies in the final image
+. Include OpenWebBeans log resource bundle
+. Register bean classes for reflection
+
+The `openwebbeans-knight` handles most of that even if you can need to tune a few details in the Arthur configuration.
+
+
+Finally, you must register the openwebbeans knight in `arthur-maven-plugin`:
+
+
+[source,xml]
+----
+<plugin>
+  <groupId>org.apache.geronimo.arthur</groupId>
+  <artifactId>arthur-maven-plugin</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <configuration>
+    <main>org.company.osgi.ScrMain</main>
+    <graalExtensions>
+      <graalExtension>openwebbeans</graalExtension>
+    </graalExtensions>
+  </configuration>
+</plugin>
+----
+
+== Configuration
+
+This knight has several configuration options:
+
+[opts="header",role="table table-bordered",cols="2,1,3"]
+|===
+|Name|Type|Description
+a|`extension.openwebbeans.classes.filter.[includes\|excludes]`|String|Comma separated values for scanning filter (packages).
+a|`extension.openwebbeans.classes.includeAsResources`|boolean|Should classes be included as resources (.class) too.
+a|`extension.openwebbeans.container.se.disableDiscovery`|boolean|Should CDI SE container auto discover the beans or not.
+a|`extension.openwebbeans.container.se.properties`|Properties|CDI SE properties.
+a|`extension.openwebbeans.container.se.services`|Properties|OpenWebBeans services as properties (SPI=IMPL).
+a|`extension.openwebbeans.container.se.classes`|String list|Bean classes to register.
+|===
+
+---
+
+Previous: link:knights.html[Knights]
