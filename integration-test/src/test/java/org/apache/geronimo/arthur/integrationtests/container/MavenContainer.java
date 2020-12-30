@@ -56,7 +56,10 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
         final DockerClient client = DockerClientFactory.instance().client();
         try {
             // note that docker daemon can ignore filter parameter so let's check it exactly
-            final List<Image> images = client.listImagesCmd().withImageNameFilter(targetImage).exec();
+            final List<Image> images = client.listImagesCmd()
+                    .withLabelFilter("org.apache.geronimo.arthur.tag=" + tag)
+                    .withDanglingFilter(false)
+                    .exec();
             if (images.size() == 1) {
                 log.info("Found '{}' image, reusing it", targetImage);
                 return targetImage;
