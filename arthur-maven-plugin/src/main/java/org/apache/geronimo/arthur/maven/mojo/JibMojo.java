@@ -16,11 +16,21 @@
  */
 package org.apache.geronimo.arthur.maven.mojo;
 
-import static java.util.Collections.singletonList;
-import static java.util.Objects.requireNonNull;
-import static java.util.Optional.ofNullable;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toList;
+import com.google.cloud.tools.jib.api.CacheDirectoryCreationException;
+import com.google.cloud.tools.jib.api.Containerizer;
+import com.google.cloud.tools.jib.api.ImageReference;
+import com.google.cloud.tools.jib.api.InvalidImageReferenceException;
+import com.google.cloud.tools.jib.api.Jib;
+import com.google.cloud.tools.jib.api.JibContainer;
+import com.google.cloud.tools.jib.api.JibContainerBuilder;
+import com.google.cloud.tools.jib.api.LogEvent;
+import com.google.cloud.tools.jib.api.Ports;
+import com.google.cloud.tools.jib.api.RegistryException;
+import com.google.cloud.tools.jib.api.buildplan.AbsoluteUnixPath;
+import com.google.cloud.tools.jib.api.buildplan.FileEntriesLayer;
+import com.google.cloud.tools.jib.api.buildplan.FileEntry;
+import com.google.cloud.tools.jib.api.buildplan.FilePermissions;
+import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,21 +54,11 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import com.google.cloud.tools.jib.api.AbsoluteUnixPath;
-import com.google.cloud.tools.jib.api.CacheDirectoryCreationException;
-import com.google.cloud.tools.jib.api.Containerizer;
-import com.google.cloud.tools.jib.api.FilePermissions;
-import com.google.cloud.tools.jib.api.ImageReference;
-import com.google.cloud.tools.jib.api.InvalidImageReferenceException;
-import com.google.cloud.tools.jib.api.Jib;
-import com.google.cloud.tools.jib.api.JibContainer;
-import com.google.cloud.tools.jib.api.JibContainerBuilder;
-import com.google.cloud.tools.jib.api.LayerConfiguration;
-import com.google.cloud.tools.jib.api.LayerEntry;
-import com.google.cloud.tools.jib.api.LogEvent;
-import com.google.cloud.tools.jib.api.Ports;
-import com.google.cloud.tools.jib.api.RegistryException;
-import org.apache.maven.plugins.annotations.Parameter;
+import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.toList;
 
 public abstract class JibMojo extends ArthurMojo {
     /**
@@ -292,7 +292,7 @@ public abstract class JibMojo extends ArthurMojo {
                     .orElseGet(() -> Paths.get(requireNonNull(
                             project.getProperties().getProperty(propertiesPrefix + "binary.path"),
                             "No binary path found, ensure to run native-image before or set entrypoint")));
-            from.setLayers(Stream.concat(Stream.concat(Stream.concat(
+            from.setFileEntriesLayers(Stream.concat(Stream.concat(Stream.concat(
                     includeCacerts ?
                             Stream.of(findCertificates()) : Stream.empty(),
                     hasNatives ?
@@ -300,9 +300,9 @@ public abstract class JibMojo extends ArthurMojo {
                     otherFiles != null && !otherFiles.isEmpty() ?
                             Stream.of(createOthersLayer()) :
                             Stream.empty()),
-                    Stream.of(LayerConfiguration.builder()
+                    Stream.of(FileEntriesLayer.builder()
                             .setName("Binary")
-                            .addEntry(new LayerEntry(
+                            .addEntry(new FileEntry(
                                     source, AbsoluteUnixPath.get(entrypoint.iterator().next()), FilePermissions.fromOctalString("755"),
                                     getTimestamp(source)))
                             .build()))
@@ -321,20 +321,20 @@ public abstract class JibMojo extends ArthurMojo {
         return Paths.get(nativeImage).getParent().getParent();
     }
 
-    private LayerConfiguration findCertificates() {
+    private FileEntriesLayer findCertificates() {
         final Path home = findHome();
         getLog().info("Using certificates from '" + home + "'");
         final Path cacerts = home.resolve("jre/lib/security/cacerts");
         if (!Files.exists(cacerts)) {
             throw new IllegalArgumentException("Missing cacerts in '" + home + "'");
         }
-        return LayerConfiguration.builder()
+        return FileEntriesLayer.builder()
                 .setName("Certificates")
                 .addEntry(cacerts, AbsoluteUnixPath.get(cacertsTarget))
                 .build();
     }
 
-    private LayerConfiguration findNatives() {
+    private FileEntriesLayer findNatives() {
         final Path home = findHome();
         getLog().info("Using natives from '" + home + "'");
         final Path jreLib = home.resolve("jre/lib");
@@ -351,7 +351,7 @@ public abstract class JibMojo extends ArthurMojo {
             final String name = path.getFileName().toString();
             return includeNatives.stream().anyMatch(n -> name.contains(isWin ? (n + ".lib") : ("lib" + n + ".so")));
         };
-        final LayerConfiguration.Builder builder = LayerConfiguration.builder();
+        final FileEntriesLayer.Builder builder = FileEntriesLayer.builder();
         final Collection<String> collected = new ArrayList<>();
         try {
             Files.walkFileTree(nativeFolder, new SimpleFileVisitor<Path>() {
@@ -379,8 +379,8 @@ public abstract class JibMojo extends ArthurMojo {
         return creationTimestamp < 0 ? Files.getLastModifiedTime(source).toInstant() : Instant.ofEpochMilli(creationTimestamp);
     }
 
-    private LayerConfiguration createOthersLayer() {
-        final LayerConfiguration.Builder builder = LayerConfiguration.builder().setName("Others");
+    private FileEntriesLayer createOthersLayer() {
+        final FileEntriesLayer.Builder builder = FileEntriesLayer.builder().setName("Others");
         otherFiles.stream().map(File::toPath).forEach(f -> {
             final AbsoluteUnixPath containerPath = AbsoluteUnixPath.get(project.getBasedir().toPath().relativize(f).toString());
             if (containerPath.toString().contains("..")) {
