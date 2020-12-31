@@ -16,9 +16,13 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.generator;
 
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
+import lombok.Data;
+import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
+import org.apache.geronimo.arthur.spi.ArthurExtension;
+import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
+import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
+import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
+import org.apache.geronimo.arthur.spi.model.ResourceModel;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -35,14 +39,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
-import org.apache.geronimo.arthur.spi.ArthurExtension;
-import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
-import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
-import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
-import org.apache.geronimo.arthur.spi.model.ResourceModel;
-
-import lombok.Data;
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 
 @Data
 public class DefautContext implements ArthurExtension.Context {
@@ -122,11 +121,29 @@ public class DefautContext implements ArthurExtension.Context {
     }
 
     @Override
+    public void includeResourceBundle(final String name) {
+        if (configuration.getIncludeResourceBundles() == null) {
+            configuration.setIncludeResourceBundles(new ArrayList<>());
+        }
+        configuration.getIncludeResourceBundles().add(name);
+    }
+
+    @Override
     public void initializeAtBuildTime(final String... classes) {
         if (configuration.getInitializeAtBuildTime() == null) {
             configuration.setInitializeAtBuildTime(new ArrayList<>());
         }
         configuration.getInitializeAtBuildTime().addAll(Stream.of(classes)
+                .filter(it -> !configuration.getInitializeAtBuildTime().contains(it))
+                .collect(toList()));
+    }
+
+    @Override
+    public void initializeAtRunTime(final String... classes) {
+        if (configuration.getInitializeAtRunTime() == null) {
+            configuration.setInitializeAtRunTime(new ArrayList<>());
+        }
+        configuration.getInitializeAtRunTime().addAll(Stream.of(classes)
                 .filter(it -> !configuration.getInitializeAtBuildTime().contains(it))
                 .collect(toList()));
     }
@@ -167,11 +184,11 @@ public class DefautContext implements ArthurExtension.Context {
     public Optional<Predicate<String>> createPredicate(final String property, final ArthurExtension.PredicateType type) {
         return ofNullable(getProperty(property))
                 .flatMap(ex -> Stream.of(ex.split(","))
-                .map(String::trim)
-                .filter(it -> !it.isEmpty())
-                .map(it -> of((Predicate<String>) n -> type.test(it, n)))
-                .reduce(Optional.<Predicate<String>>empty(),
-                        (opt, p) -> opt.map(e -> of(e.or(p.orElseThrow(IllegalArgumentException::new)))).orElse(p)));
+                        .map(String::trim)
+                        .filter(it -> !it.isEmpty())
+                        .map(it -> of((Predicate<String>) n -> type.test(it, n)))
+                        .reduce(Optional.<Predicate<String>>empty(),
+                                (opt, p) -> opt.map(e -> of(e.or(p.orElseThrow(IllegalArgumentException::new)))).orElse(p)));
     }
 
     @Override
@@ -179,17 +196,22 @@ public class DefautContext implements ArthurExtension.Context {
         final Optional<Predicate<String>> includes = createPredicate(propertyBase + "includes", type);
         final Optional<Predicate<String>> excludes = createPredicate(propertyBase + "excludes", type);
         return n -> {
-            if (includes.isPresent()) {
+            final boolean hasInclude = includes.isPresent();
+            if (hasInclude) {
                 if (includes.orElseThrow(IllegalStateException::new).test(n)) {
                     return true;
                 }
             }
-            if (excludes.isPresent()) {
+            final boolean hasExclude = excludes.isPresent();
+            if (hasExclude) {
                 if (excludes.orElseThrow(IllegalStateException::new).test(n)) {
                     return false;
                 }
             }
-            return !excludes.isPresent() && !includes.isPresent();
+            if (hasExclude && !hasInclude) {
+                return true;
+            }
+            return !hasExclude && !hasInclude;
         };
     }
 

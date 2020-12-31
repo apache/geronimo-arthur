@@ -1,0 +1,57 @@
+////
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+////
+= Arthur SLF4J Knights
+
+Arthur Slf4j knight is responsible to force some SLF4j and SLF4J-JUL class initialization at build time.
+
+== Coordinates
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.apache.geronimo.arthur.knights</groupId>
+  <artifactId>slf4j-knight</artifactId>
+  <version>${arthur.version}</version>
+</dependency>
+----
+
+== Usage
+
+The `slf4j-knight` handles some build time initialization to make `slf4j-jdk14` working with graalvm compilation.
+
+
+You must register the slf4j knight in `arthur-maven-plugin`:
+
+
+[source,xml]
+----
+<plugin>
+  <groupId>org.apache.geronimo.arthur</groupId>
+  <artifactId>arthur-maven-plugin</artifactId>
+  <version>${arthur.version}</version>
+  <configuration>
+    <main>org.company.Main</main>
+    <graalExtensions>
+      <graalExtension>slf4j</graalExtension>
+    </graalExtensions>
+  </configuration>
+</plugin>
+----
+
+---
+
+Previous: link:knights.html[Knights]

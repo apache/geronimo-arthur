@@ -16,43 +16,7 @@
  */
 package org.apache.geronimo.arthur.maven.mojo;
 
-import static java.lang.ClassLoader.getSystemClassLoader;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
-import static lombok.AccessLevel.PROTECTED;
-import static org.apache.maven.plugins.annotations.LifecyclePhase.PACKAGE;
-import static org.apache.maven.plugins.annotations.ResolutionScope.TEST;
-import static org.apache.xbean.finder.archive.ClasspathArchive.archive;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
-import javax.json.bind.config.PropertyOrderStrategy;
-
+import lombok.Getter;
 import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageConfiguration;
 import org.apache.geronimo.arthur.impl.nativeimage.ArthurNativeImageExecutor;
 import org.apache.geronimo.arthur.impl.nativeimage.generator.extension.AnnotationExtension;
@@ -77,11 +41,50 @@ import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
 import org.apache.xbean.finder.AnnotationFinder;
+import org.apache.xbean.finder.archive.Archive;
 import org.apache.xbean.finder.archive.CompositeArchive;
+import org.apache.xbean.finder.archive.FilteredArchive;
+import org.apache.xbean.finder.filter.Filter;
+import org.apache.xbean.finder.filter.Filters;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.graph.DependencyVisitor;
 
-import lombok.Getter;
+import javax.json.bind.Jsonb;
+import javax.json.bind.JsonbBuilder;
+import javax.json.bind.JsonbConfig;
+import javax.json.bind.config.PropertyOrderStrategy;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import static java.lang.ClassLoader.getSystemClassLoader;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
+import static lombok.AccessLevel.PROTECTED;
+import static org.apache.maven.plugins.annotations.LifecyclePhase.PACKAGE;
+import static org.apache.maven.plugins.annotations.ResolutionScope.TEST;
+import static org.apache.xbean.finder.archive.ClasspathArchive.archive;
 
 /**
  * Generates a native binary from current project.
@@ -280,6 +283,12 @@ public class NativeImageMojo extends ArthurMojo {
     private List<String> excludedArtifacts;
 
     /**
+     * Classes or packages (startsWith is used to test entries).
+     */
+    @Parameter(property = "arthur.scanningClassesOrPackagesExcludes")
+    private List<String> scanningClassesOrPackagesExcludes;
+
+    /**
      * groupId:artifactId list of ignored artifact during the scanning phase.
      * Compared to `excludedArtifacts`, it keeps the jar in the scanning/extension classloader
      * but it does not enable to find any annotation in it.
@@ -421,7 +430,8 @@ public class NativeImageMojo extends ArthurMojo {
                 .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
             thread.setContextClassLoader(loader);
             final Predicate<Artifact> scanningFilter = createScanningFilter();
-            final AnnotationFinder finder = new AnnotationFinder(new CompositeArchive(classpathEntries.entrySet().stream()
+            final Function<Archive, Archive> archiveProcessor = createArchiveFilter();
+            final AnnotationFinder finder = new AnnotationFinder(archiveProcessor.apply(new CompositeArchive(classpathEntries.entrySet().stream()
                     .filter(e -> scanningFilter.test(e.getKey()))
                     .map(Map.Entry::getValue)
                     .map(path -> {
@@ -431,7 +441,7 @@ public class NativeImageMojo extends ArthurMojo {
                             throw new IllegalStateException(e);
                         }
                     })
-                    .collect(toList())));
+                    .collect(toList()))));
             final AtomicBoolean finderLinked = new AtomicBoolean();
             MavenArthurExtension.with(
                     reflections, resources, bundles, dynamicProxies,
@@ -439,6 +449,7 @@ public class NativeImageMojo extends ArthurMojo {
                             ArthurNativeImageExecutor.ExecutorConfiguration.builder()
                                     .jsonSerializer(jsonb::toJson)
                                     .annotatedClassFinder(finder::findAnnotatedClasses)
+                                    .annotatedFieldFinder(finder::findAnnotatedFields)
                                     .annotatedMethodFinder(finder::findAnnotatedMethods)
                                     .extensionProperties(getExtensionProperties())
                                     .implementationFinder(p -> {
@@ -488,6 +499,19 @@ public class NativeImageMojo extends ArthurMojo {
                 helper.attachArtifact(project, attachType, new File(output));
             }
         }
+    }
+
+    private Function<Archive, Archive> createArchiveFilter() {
+        if (scanningClassesOrPackagesExcludes == null || scanningClassesOrPackagesExcludes.isEmpty()) {
+            return Function.identity();
+        }
+        final Filter filter = Filters.invert(Filters.prefixes(
+                scanningClassesOrPackagesExcludes.stream()
+                        .map(String::trim)
+                        .filter(it -> !it.isEmpty())
+                        .distinct()
+                        .toArray(String[]::new)));
+        return a -> new FilteredArchive(a, filter);
     }
 
     private Map<String, String> getExtensionProperties() {

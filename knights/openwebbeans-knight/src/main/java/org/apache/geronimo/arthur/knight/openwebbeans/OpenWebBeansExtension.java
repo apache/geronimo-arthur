@@ -19,9 +19,11 @@ package org.apache.geronimo.arthur.knight.openwebbeans;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.geronimo.arthur.spi.ArthurExtension;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
+import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.openwebbeans.se.CDISeScannerService;
 import org.apache.openwebbeans.se.PreScannedCDISeScannerService;
+import org.apache.webbeans.component.AbstractProducerBean;
 import org.apache.webbeans.component.InjectionTargetBean;
 import org.apache.webbeans.component.ManagedBean;
 import org.apache.webbeans.config.OpenWebBeansConfiguration;
@@ -39,6 +41,10 @@ import org.apache.webbeans.intercept.RequestScopedBeanInterceptorHandler;
 import org.apache.webbeans.intercept.SessionScopedBeanInterceptorHandler;
 import org.apache.webbeans.lifecycle.StandaloneLifeCycle;
 import org.apache.webbeans.logger.WebBeansLoggerFacade;
+import org.apache.webbeans.portable.BaseProducerProducer;
+import org.apache.webbeans.portable.ProducerFieldProducer;
+import org.apache.webbeans.portable.ProducerMethodProducer;
+import org.apache.webbeans.portable.events.ExtensionLoader;
 import org.apache.webbeans.service.ClassLoaderProxyService;
 import org.apache.webbeans.service.DefaultLoaderService;
 import org.apache.webbeans.spi.ApplicationBoundaryService;
@@ -68,6 +74,7 @@ import javax.enterprise.event.TransactionPhase;
 import javax.enterprise.inject.Default;
 import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.se.SeContainerInitializer;
+import javax.enterprise.inject.spi.AnnotatedField;
 import javax.enterprise.inject.spi.Bean;
 import javax.inject.Qualifier;
 import javax.interceptor.InterceptorBinding;
@@ -75,11 +82,15 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -88,9 +99,11 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 @Slf4j
 public class OpenWebBeansExtension implements ArthurExtension {
@@ -102,13 +115,15 @@ public class OpenWebBeansExtension implements ArthurExtension {
             final WebBeansContext webBeansContext = WebBeansContext.currentInstance();
             final BeanManagerImpl beanManager = webBeansContext.getBeanManagerImpl();
             final Set<Bean<?>> beans = beanManager.getBeans();
+            final Predicate<String> classFilter = context.createIncludesExcludes(
+                    "extension.openwebbeans.classes.filter.", PredicateType.STARTS_WITH);
 
             // 1. capture all proxies
-            dumpProxies(context, webBeansContext, beans);
+            dumpProxies(context, webBeansContext, beans, classFilter);
 
             // 2. register all classes which will require reflection + proxies
-            final String beanClassesList = registerBeansForReflection(context, beans);
-            getProxies(webBeansContext).keySet().forEach(name -> {
+            final String beanClassesList = registerBeansForReflection(context, beans, classFilter);
+            getProxies(webBeansContext).keySet().stream().sorted().forEach(name -> {
                 final ClassReflectionModel model = new ClassReflectionModel();
                 model.setName(name);
                 model.setAllDeclaredConstructors(true);
@@ -148,33 +163,141 @@ public class OpenWebBeansExtension implements ArthurExtension {
                         model.setAllDeclaredConstructors(true);
                         context.register(model);
                     });
-            // 4.3 annotations
+            // 5 annotations
+            final Collection<Class<?>> customAnnotations = Stream.concat(
+                    context.findAnnotatedClasses(Qualifier.class).stream(),
+                    context.findAnnotatedClasses(NormalScope.class).stream())
+                    .collect(toList());
             Stream.concat(Stream.concat(Stream.of(
                     Initialized.class, Destroyed.class, NormalScope.class, ApplicationScoped.class, Default.class,
                     Dependent.class, ConversationScoped.class, RequestScoped.class, Observes.class, ObservesAsync.class,
                     Qualifier.class, InterceptorBinding.class),
                     beanManager.getAdditionalQualifiers().stream()),
-                    Stream.concat(
-                            context.findAnnotatedClasses(Qualifier.class).stream(),
-                            context.findAnnotatedClasses(NormalScope.class).stream()))
+                    customAnnotations.stream())
                     .distinct()
+                    .map(Class::getName)
+                    .sorted()
                     .forEach(clazz -> {
                         final ClassReflectionModel model = new ClassReflectionModel();
-                        model.setName(clazz.getName());
+                        model.setName(clazz);
+                        model.setAllDeclaredMethods(true);
+                        context.register(model);
+                    });
+            customAnnotations.stream() // DefaultAnnotation.of
+                    .filter(it -> !it.getName().startsWith("javax."))
+                    .map(Class::getName)
+                    .sorted()
+                    .map(it -> {
+                        final DynamicProxyModel proxyModel = new DynamicProxyModel();
+                        proxyModel.setClasses(singleton(it));
+                        return proxyModel;
+                    })
+                    .forEach(context::register);
+
+            // 6 extensions - normally taken by graalvm service loader but we need a bit more reflection
+            final ExtensionLoader extensionLoader = webBeansContext.getExtensionLoader();
+            try {
+                final Field extensionClasses = ExtensionLoader.class.getDeclaredField("extensionClasses");
+                if (!extensionClasses.isAccessible()) {
+                    extensionClasses.setAccessible(true);
+                }
+                final Predicate<String> extensionFilter = context.createPredicate("extension.openwebbeans.extension.excludes", PredicateType.STARTS_WITH)
+                        .map(Predicate::negate)
+                        .orElseGet(() -> n -> true);
+                final Set<Class<?>> classes = (Set<Class<?>>) extensionClasses.get(extensionLoader);
+                classes.stream()
+                        .filter(it -> extensionFilter.test(it.getName()))
+                        .flatMap(this::hierarchy)
+                        .distinct()
+                        .map(Class::getName)
+                        .filter(classFilter)
+                        .sorted()
+                        .forEach(clazz -> {
+                            final ClassReflectionModel model = new ClassReflectionModel();
+                            model.setName(clazz);
+                            model.setAllDeclaredConstructors(true);
+                            model.setAllDeclaredMethods(true);
+                            model.setAllDeclaredMethods(true);
+                            context.register(model);
+                        });
+            } catch (final NoSuchFieldException | IllegalAccessException e) {
+                throw new IllegalStateException("Incompatible OpenWebBeans version", e);
+            }
+
+            // 7. producer types must be reflection friendly
+            findProducedClasses(beans)
+                    .map(Class::getName)
+                    .sorted()
+                    .forEach(name -> {
+                        final ClassReflectionModel model = new ClassReflectionModel();
+                        model.setName(name);
+                        model.setAllDeclaredConstructors(true);
+                        model.setAllDeclaredFields(true);
                         model.setAllDeclaredMethods(true);
                         context.register(model);
                     });
 
-            // enforce some build time init for annotations and some specific classes
+            // 8. enforce some build time init for annotations and some specific classes
             context.initializeAtBuildTime(
                     Reception.class.getName(),
                     TransactionPhase.class.getName(),
                     DefaultSingletonService.class.getName(),
                     WebBeansLoggerFacade.class.getName());
+            try { // openwebbeans-slf4j is an optional module
+                final Class<?> logger = context.loadClass("org.apache.openwebbeans.slf4j.Slf4jLogger");
+                context.initializeAtBuildTime(logger.getName());
+            } catch (final RuntimeException e) {
+                // ignore, not there
+            }
 
-            // we add the resource bundle in the feature not here
+            // 9. we add the resource bundle + the bundle as resource for some extensions (thank you JUL)
+            context.includeResourceBundle("openwebbeans/Messages");
+            final ResourceModel resourceModel = new ResourceModel();
+            resourceModel.setPattern("openwebbeans/Messages\\.properties");
+            context.register(resourceModel);
+
+            // 10. OWB creates proxies on TypeVariable (generics checks) so enable it
+            final DynamicProxyModel typeVariableProxyModel = new DynamicProxyModel();
+            typeVariableProxyModel.setClasses(singleton(TypeVariable.class.getName()));
+            context.register(typeVariableProxyModel);
         } finally {
             System.setProperties(original);
+        }
+    }
+
+    private Stream<Class<?>> findProducedClasses(final Set<Bean<?>> beans) {
+        return beans.stream()
+                .filter(it -> AbstractProducerBean.class.isInstance(it) && BaseProducerProducer.class.isInstance(AbstractProducerBean.class.cast(it).getProducer()))
+                .flatMap(it -> {
+                    final BaseProducerProducer bpp = BaseProducerProducer.class.cast(AbstractProducerBean.class.cast(it).getProducer());
+                    final Collection<Type> types = it.getTypes();
+                    if (ProducerMethodProducer.class.isInstance(bpp)) {
+                        return concat(types, get(bpp, "producerMethod", Method.class).getReturnType());
+                    }
+                    if (ProducerFieldProducer.class.isInstance(bpp)) {
+                        return concat(types, get(bpp, "producerField", AnnotatedField.class).getJavaMember().getType());
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull);
+    }
+
+    private Stream<Class<?>> concat(final Collection<Type> types, final Class<?> type) {
+        return Stream.concat(Stream.of(type), types.stream().filter(Class.class::isInstance).map(Class.class::cast))
+                .distinct() // if types includes type, avoids to do twice the hierarchy
+                .flatMap(this::hierarchy)
+                .distinct();
+    }
+
+    private <T> T get(final BaseProducerProducer p, final String field, final Class<T> type) {
+        try {
+            final Field declaredField = p.getClass().getDeclaredField(field);
+            if (!declaredField.isAccessible()) {
+                declaredField.setAccessible(true);
+            }
+            return type.cast(declaredField.get(p));
+        } catch (final Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -196,8 +319,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
                 .filter(Objects::nonNull);
     }
 
-    private String registerBeansForReflection(final Context context, final Set<Bean<?>> beans) {
-        final Predicate<String> classFilter = context.createIncludesExcludes("extension.openwebbeans.classes.filter.", PredicateType.STARTS_WITH);
+    private String registerBeansForReflection(final Context context, final Set<Bean<?>> beans, final Predicate<String> classFilter) {
         final boolean includeClassResources = Boolean.parseBoolean(context.getProperty("extension.openwebbeans.classes.includeAsResources"));
         return beans.stream()
                 .filter(ManagedBean.class::isInstance)
@@ -224,7 +346,8 @@ public class OpenWebBeansExtension implements ArthurExtension {
                 .collect(joining(","));
     }
 
-    private void dumpProxies(final Context context, final WebBeansContext webBeansContext, final Set<Bean<?>> beans) {
+    private void dumpProxies(final Context context, final WebBeansContext webBeansContext, final Set<Bean<?>> beans,
+                             final Predicate<String> classFilter) {
         // interceptors/decorators
         beans.stream()
                 .filter(InjectionTargetBean.class::isInstance)
@@ -240,10 +363,13 @@ public class OpenWebBeansExtension implements ArthurExtension {
         if (proxies.isEmpty()) {
             log.info("No proxy found for this application");
         } else {
-            proxies.forEach((className, bytes) -> {
-                context.registerGeneratedClass(className, bytes);
-                log.info("Registered proxy '{}'", className);
-            });
+            proxies.entrySet().stream()
+                    .filter(it -> classFilter.test(it.getKey()))
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(e -> {
+                        context.registerGeneratedClass(e.getKey(), e.getValue());
+                        log.info("Registered proxy '{}'", e.getKey());
+                    });
         }
     }
 
@@ -254,7 +380,9 @@ public class OpenWebBeansExtension implements ArthurExtension {
     private Stream<Class<?>> hierarchy(final Class<?> it) {
         return it == null || it == Object.class ?
                 Stream.empty() :
-                Stream.concat(Stream.of(it), hierarchy(it.getSuperclass()));
+                Stream.concat(
+                        Stream.concat(Stream.of(it), hierarchy(it.getSuperclass())),
+                        Stream.of(it.getInterfaces()).flatMap(this::hierarchy));
     }
 
     private Properties initProperties(final Context context, final OpenWebBeansConfiguration configuration,
@@ -294,6 +422,10 @@ public class OpenWebBeansExtension implements ArthurExtension {
         properties.setProperty("org.apache.webbeans.spi.DefiningClassService", runtime ?
                 "org.apache.webbeans.service.ClassLoaderProxyService$LoadFirst" :
                 "org.apache.webbeans.service.ClassLoaderProxyService$Spy");
+        if (runtime) {
+            properties.setProperty(
+                    properties.getProperty("org.apache.webbeans.spi.DefiningClassService") + ".skipPackages", "true");
+        }
         properties.setProperty("org.apache.webbeans.spi.ApplicationBoundaryService",
                 "org.apache.webbeans.corespi.se.SimpleApplicationBoundaryService");
     }

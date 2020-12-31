@@ -119,10 +119,21 @@ public interface ArthurExtension {
         void enableAllCharsets();
 
         /**
+         * Includes resource bundle (directly from the CLI since graal has some bugs on that as of today).
+         */
+        void includeResourceBundle(String name);
+
+        /**
          * Forces classes to be initialized during the build and not at run time.
          * @param classes classes to initialize.
          */
         void initializeAtBuildTime(String... classes);
+
+        /**
+         * Forces classes to be initialized during the run only, not the build.
+         * @param classes classes to initialize.
+         */
+        void initializeAtRunTime(String... classes);
 
         /**
          * Retrieve a context property, used to configured an extension.

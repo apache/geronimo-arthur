@@ -91,7 +91,7 @@ Finally, you must register the openwebbeans knight in `arthur-maven-plugin`:
 <plugin>
   <groupId>org.apache.geronimo.arthur</groupId>
   <artifactId>arthur-maven-plugin</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>${arthur.version}</version>
   <configuration>
     <main>org.company.cdi.Main</main>
     <graalExtensions>
@@ -114,6 +114,7 @@ a|`extension.openwebbeans.container.se.disableDiscovery`|boolean|Should CDI SE c
 a|`extension.openwebbeans.container.se.properties`|Properties|CDI SE properties.
 a|`extension.openwebbeans.container.se.services`|Properties|OpenWebBeans services as properties (SPI=IMPL).
 a|`extension.openwebbeans.container.se.classes`|String list|Bean classes to register.
+a|`extension.openwebbeans.extension.excludes`|String list|Extension fully qualified name prefixes to exclude undesired extensions.
 |===
 
 ---

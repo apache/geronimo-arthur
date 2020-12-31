@@ -149,7 +149,7 @@ Finally, whatever way you picked to generate metadata, you must register the win
 <plugin>
   <groupId>org.apache.geronimo.arthur</groupId>
   <artifactId>arthur-maven-plugin</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>${arthur.version}</version>
   <configuration>
     <main>org.company.osgi.ScrMain</main>
     <graalExtensions>

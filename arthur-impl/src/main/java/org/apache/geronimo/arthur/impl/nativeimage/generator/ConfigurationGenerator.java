@@ -35,6 +35,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,8 +48,8 @@ import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -141,7 +142,7 @@ public class ConfigurationGenerator implements Runnable {
         if (!context.getDynamicProxyModels().isEmpty()) {
             final Set<Collection<String>> proxies = context.getDynamicProxyModels().stream()
                     .map(DynamicProxyModel::getClasses)
-                    .collect(toSet());
+                    .collect(toCollection(LinkedHashSet::new));
 
             ensureWorkingDirectoryExists();
             final Path json = workingDirectory.resolve("dynamicproxies.arthur.json");
@@ -169,7 +170,7 @@ public class ConfigurationGenerator implements Runnable {
                     throw new IllegalStateException(e);
                 }
             });
-            log.info("Dumped generated classes in '{}'", dynamicClassesDir);
+            log.info("Dumped {} generated classes in '{}'", context.getDynamicClasses().size(), dynamicClassesDir);
             if (configuration.getClasspath() == null) {
                 configuration.setClasspath(singletonList(dynamicClassesDir.toString()));
             } else {

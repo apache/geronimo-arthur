@@ -17,14 +17,12 @@
 package org.apache.geronimo.arthur.knight.openwebbeans.feature;
 
 import com.oracle.svm.core.annotate.AutomaticFeature;
-import com.oracle.svm.core.jdk.LocalizationFeature;
 import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.option.HostedOptionKey;
 import org.graalvm.compiler.options.Option;
 import org.graalvm.compiler.options.OptionDescriptor;
 import org.graalvm.compiler.options.OptionDescriptors;
 import org.graalvm.compiler.options.OptionType;
-import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 
 import java.io.IOException;
@@ -68,7 +66,6 @@ public class OpenWebBeansFeature implements Feature {
         if (Options.OpenWebBeansProperties.hasBeenSet()) {
             register(Options.OpenWebBeansProperties.getValue(), "META-INF/openwebbeans/openwebbeans.properties");
         }
-        ImageSingletons.lookup(LocalizationFeature.class).addBundleToCache("openwebbeans/Messages");
     }
 
     private void register(final String path, final String resource) {
