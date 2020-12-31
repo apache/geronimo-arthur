@@ -150,7 +150,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
                     });
             // 4.2 classes which must be instantiable
             Stream.concat(Stream.of(
-                    ClassLoaderProxyService.LoadFirst.class, StandaloneLifeCycle.class, StandaloneContextsService.class,
+                    ClassLoaderProxyService.LoadOnly.class, StandaloneLifeCycle.class, StandaloneContextsService.class,
                     DefaultLoaderService.class, InjectionPointImpl.class, ConversationImpl.class, SimpleApplicationBoundaryService.class,
                     ApplicationScopedBeanInterceptorHandler.class, RequestScopedBeanInterceptorHandler.class,
                     SessionScopedBeanInterceptorHandler.class, NormalScopedBeanInterceptorHandler.class,
@@ -420,7 +420,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
         properties.setProperty("org.apache.webbeans.proxy.staticNames.useXxHash64", "true");
 
         properties.setProperty("org.apache.webbeans.spi.DefiningClassService", runtime ?
-                "org.apache.webbeans.service.ClassLoaderProxyService$LoadFirst" :
+                "org.apache.webbeans.service.ClassLoaderProxyService$LoadOnly" :
                 "org.apache.webbeans.service.ClassLoaderProxyService$Spy");
         if (runtime) {
             properties.setProperty(
