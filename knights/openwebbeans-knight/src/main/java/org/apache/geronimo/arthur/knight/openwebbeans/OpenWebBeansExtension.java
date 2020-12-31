@@ -422,10 +422,6 @@ public class OpenWebBeansExtension implements ArthurExtension {
         properties.setProperty("org.apache.webbeans.spi.DefiningClassService", runtime ?
                 "org.apache.webbeans.service.ClassLoaderProxyService$LoadOnly" :
                 "org.apache.webbeans.service.ClassLoaderProxyService$Spy");
-        if (runtime) {
-            properties.setProperty(
-                    properties.getProperty("org.apache.webbeans.spi.DefiningClassService") + ".skipPackages", "true");
-        }
         properties.setProperty("org.apache.webbeans.spi.ApplicationBoundaryService",
                 "org.apache.webbeans.corespi.se.SimpleApplicationBoundaryService");
     }

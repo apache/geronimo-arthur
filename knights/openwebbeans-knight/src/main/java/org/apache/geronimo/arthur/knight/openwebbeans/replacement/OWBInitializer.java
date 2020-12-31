@@ -21,12 +21,12 @@ import com.oracle.svm.core.annotate.TargetClass;
 import org.apache.openwebbeans.se.PreScannedCDISeScannerService;
 import org.apache.webbeans.spi.ScannerService;
 
+import java.util.Map;
+
 @TargetClass(org.apache.openwebbeans.se.OWBInitializer.class)
 public final class OWBInitializer {
     @Substitute
-    protected ScannerService getScannerService() {
-        final PreScannedCDISeScannerService scannerService = new PreScannedCDISeScannerService();
-        scannerService.loader(Thread.currentThread().getContextClassLoader());
-        return scannerService;
+    protected void addCustomServices(final Map<String, Object> services) {
+        services.put(ScannerService.class.getName(), new PreScannedCDISeScannerService());
     }
 }
