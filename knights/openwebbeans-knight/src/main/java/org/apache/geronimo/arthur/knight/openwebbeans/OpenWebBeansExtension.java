@@ -414,7 +414,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
     }
 
     private void enrichProperties(final Properties properties, final boolean runtime) {
-        properties.setProperty("config.ordinal", "10000");
+        properties.setProperty("configuration.ordinal", "10000");
 
         properties.setProperty("org.apache.webbeans.proxy.useStaticNames", "true");
         properties.setProperty("org.apache.webbeans.proxy.staticNames.useXxHash64", "true");
