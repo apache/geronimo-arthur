@@ -398,6 +398,11 @@ public class OpenWebBeansExtension implements ArthurExtension {
             }
             properties.putIfAbsent("org.apache.openwebbeans.se.PreScannedCDISeScannerService.classes", beanClassesList);
 
+            if (!Boolean.getBoolean("extension.openwebbeans.runtime.properties.skipOptimizations")) {
+                properties.putIfAbsent("org.apache.webbeans.spi.deployer.skipValidations", "true");
+                properties.putIfAbsent("org.apache.webbeans.spi.deployer.skipVetoedOnPackages", "true");
+            }
+
             properties.remove("configuration.ordinal"); // no more needed since it will be unique
             final StringWriter writer = new StringWriter();
             try (final StringWriter w = writer) {

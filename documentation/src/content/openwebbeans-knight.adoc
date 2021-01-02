@@ -115,6 +115,7 @@ a|`extension.openwebbeans.container.se.properties`|Properties|CDI SE properties.
 a|`extension.openwebbeans.container.se.services`|Properties|OpenWebBeans services as properties (SPI=IMPL).
 a|`extension.openwebbeans.container.se.classes`|String list|Bean classes to register.
 a|`extension.openwebbeans.extension.excludes`|String list|Extension fully qualified name prefixes to exclude undesired extensions.
+a|`extension.openwebbeans.runtime.properties.skipOptimizations`|boolean|By default the knight will enable some optimization properties like skipping validation and `@Vetoed` on packages. If undesired set it to `true`.
 |===
 
 ---
