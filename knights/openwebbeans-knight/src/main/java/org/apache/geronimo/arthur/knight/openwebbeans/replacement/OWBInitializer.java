@@ -18,15 +18,13 @@ package org.apache.geronimo.arthur.knight.openwebbeans.replacement;
 
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
+import org.apache.openwebbeans.se.CDISeScannerService;
 import org.apache.openwebbeans.se.PreScannedCDISeScannerService;
-import org.apache.webbeans.spi.ScannerService;
-
-import java.util.Map;
 
 @TargetClass(org.apache.openwebbeans.se.OWBInitializer.class)
 public final class OWBInitializer {
     @Substitute
-    protected void addCustomServices(final Map<String, Object> services) {
-        services.put(ScannerService.class.getName(), new PreScannedCDISeScannerService());
+    protected CDISeScannerService createDefaultScannerService() {
+        return new PreScannedCDISeScannerService();
     }
 }

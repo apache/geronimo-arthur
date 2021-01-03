@@ -123,7 +123,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
 
             // 2. register all classes which will require reflection + proxies
             final String beanClassesList = registerBeansForReflection(context, beans, classFilter);
-            getProxies(webBeansContext).keySet().stream().sorted().forEach(name -> {
+            getProxies(webBeansContext).keySet().stream().filter(classFilter).sorted().forEach(name -> {
                 final ClassReflectionModel model = new ClassReflectionModel();
                 model.setName(name);
                 model.setAllDeclaredConstructors(true);

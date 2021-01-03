@@ -63,6 +63,7 @@ import static java.util.stream.Collectors.toList;
 public abstract class JibMojo extends ArthurMojo {
     /**
      * Base image to use. Scratch will ensure it starts from an empty image.
+     * For a partially linked use busybox:glibc.
      */
     @Parameter(property = "arthur.from", defaultValue = "scratch")
     private String from;

@@ -264,6 +264,9 @@ To do it just replace the `arthur:docker` by `arthur:image`.
 
 TIP: this goal does *not* need a docker daemon on the machine, it just uses HTTP(S) communication with a registry.
 
+IMPORTANT: if you use `static` build you can use `scratch` as base image (empty) but if you use `-H:+StaticExecutableWithDynamicLibC` which statically link everything but glic you should switch to `busybox:glic` for example.
+Also note that some applications will require more libraries like libdl so ensure to adjust your base image on your usage.
+
 ==== Configuration
 
 include::{generated_dir}/generated_image_mojo.adoc[]
