@@ -253,6 +253,29 @@ $ mvn arthur:native-image arthur:docker
 [INFO] ------------------------------------------------------------------------
 ----
 
+==== LDD or not
+
+By default Arthur maven docker/image plugins assume the binary is self executable by itself (statically linked).
+If it is not the case, you need to ensure the from/base image has the needed libraries.
+It is not always trivial nor convenient so we have a mode using the build machine `ldd` to detect which libs are needed and add them in the image parsing `ldd` output.
+
+IMPORTANT: this mode enables to build very light native images using `scratch` virtual base image (empty) but it can conflict with other base images since it sets `LD_LIBRARY_PATH` if not present int he `environment` configuration.
+
+Here is what the `ldd` output look like - if not the case ensure to set a PATH before running the plugin which has a compliant ldd:
+
+[source]
+----
+$ ldd doc.graal.bin
+        linux-vdso.so.1 (0x00007ffcc41ba000)
+        libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f4ad85e7000)
+        libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f4ad85e1000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f4ad83ef000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f4adba6b000)
+----
+
+The parser will take all line containing a `/` and the first string without any space starting by a `/` will be considered as a path of a library to include.
+With previous output, the image will get `libpthread.so.0`, `libdl.so.2`, `libc.so.6` and `ld-linux-x86-64.so.2` included (but not `linux-vdso.so.1` since it is not a path / it has no slash in the line).
+
 ==== Configuration
 
 include::{generated_dir}/generated_docker_mojo.adoc[]
@@ -314,7 +337,7 @@ It configure some resource bundle, setup h2 driver and exclude derby from the bu
 </plugin>
 ----
 
-Then you can just run `mvn arthur:native-image arthur:docker` to get a ready to deploy image.
+Then you can just run `mvn [package] arthur:native-image arthur:docker` to get a ready to deploy image.
 
 ---
 

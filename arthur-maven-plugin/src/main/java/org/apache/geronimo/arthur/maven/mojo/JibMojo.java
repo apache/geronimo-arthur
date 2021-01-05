@@ -32,8 +32,12 @@ import com.google.cloud.tools.jib.api.buildplan.FileEntry;
 import com.google.cloud.tools.jib.api.buildplan.FilePermissions;
 import org.apache.maven.plugins.annotations.Parameter;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -58,12 +63,16 @@ import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 public abstract class JibMojo extends ArthurMojo {
     /**
-     * Base image to use. Scratch will ensure it starts from an empty image.
+     * Base image to use. Scratch will ensure it starts from an empty image and is the most minimal option.
      * For a partially linked use busybox:glibc.
+     * Note that using scratch can require you to turn on useLDD flag (not by default since it depends in your build OS).
+     * On the opposite, using an existing distribution (debian, fedora, ...) enables to not do that at the cost of a bigger overall image.
+     * However, not only the overall image size is important, the reusable layers can save network time so pick what fits the best your case.
      */
     @Parameter(property = "arthur.from", defaultValue = "scratch")
     private String from;
@@ -113,7 +122,7 @@ public abstract class JibMojo extends ArthurMojo {
     /**
      * Where is the binary to include. It defaults on native-image output if done before in the same execution
      */
-    @Parameter(property = "arthur.binarySource")
+    @Parameter(property = "arthur.binarySource", defaultValue = "${project.build.directory}/${project.artifactId}.graal.bin")
     private File binarySource;
 
     /**
@@ -183,6 +192,21 @@ public abstract class JibMojo extends ArthurMojo {
      */
     @Parameter(property = "arthur.cacertsDir", defaultValue = "/certificates/cacerts")
     protected String cacertsTarget;
+
+    /**
+     * If true, the created binary will be passed to ldd to detect the needed libraries.
+     * It enables to use FROM scratch even when the binary requires dynamic linking.
+     * Note that if ld-linux libraries is found by that processing it is set as first argument of the entrypoint
+     * until skipLdLinuxInEntrypoint is set to true.
+     */
+    @Parameter(property = "arthur.useLDD", defaultValue = "false")
+    protected boolean useLDD;
+
+    /**
+     * If true, and even if useLDD is true, ld-linux will not be in entrypoint.
+     */
+    @Parameter(property = "arthur.skipLdLinuxInEntrypoint", defaultValue = "false")
+    protected boolean skipLdLinuxInEntrypoint;
 
     protected abstract Containerizer createContainer() throws InvalidImageReferenceException;
 
@@ -267,9 +291,6 @@ public abstract class JibMojo extends ArthurMojo {
             if (ports != null) {
                 from.setExposedPorts(Ports.parse(ports));
             }
-            if (environment != null) {
-                from.setEnvironment(environment);
-            }
             if (labels != null) {
                 from.setLabels(labels);
             }
@@ -278,39 +299,145 @@ public abstract class JibMojo extends ArthurMojo {
             }
             from.setCreationTime(creationTimestamp < 0 ? Instant.now() : Instant.ofEpochMilli(creationTimestamp));
 
-            final boolean hasNatives = includeNatives != null && !includeNatives.isEmpty() && !singletonList("false").equals(includeNatives);
-            if (entrypoint == null || entrypoint.size() < 1) {
-                throw new IllegalArgumentException("No entrypoint set");
-            }
-            from.setEntrypoint(Stream.concat(Stream.concat(
-                    entrypoint.stream(),
-                    hasNatives ? Stream.of("-Djava.library.path=" + nativeRootDir) : Stream.empty()),
-                    includeCacerts ? Stream.of("-Djavax.net.ssl.trustStore=" + cacertsTarget) : Stream.empty())
-                    .collect(toList()));
-
+            final boolean hasNatives = useLDD || (includeNatives != null && !includeNatives.isEmpty() && !singletonList("false").equals(includeNatives));
             final Path source = ofNullable(binarySource)
                     .map(File::toPath)
                     .orElseGet(() -> Paths.get(requireNonNull(
                             project.getProperties().getProperty(propertiesPrefix + "binary.path"),
                             "No binary path found, ensure to run native-image before or set entrypoint")));
-            from.setFileEntriesLayers(Stream.concat(Stream.concat(Stream.concat(
-                    includeCacerts ?
-                            Stream.of(findCertificates()) : Stream.empty(),
-                    hasNatives ?
-                            Stream.of(findNatives()) : Stream.empty()),
-                    otherFiles != null && !otherFiles.isEmpty() ?
-                            Stream.of(createOthersLayer()) :
-                            Stream.empty()),
-                    Stream.of(FileEntriesLayer.builder()
-                            .setName("Binary")
-                            .addEntry(new FileEntry(
-                                    source, AbsoluteUnixPath.get(entrypoint.iterator().next()), FilePermissions.fromOctalString("755"),
-                                    getTimestamp(source)))
-                            .build()))
+
+            final Map<String, String> env = environment == null ? new TreeMap<>() : new TreeMap<>(environment);
+
+            final List<FileEntriesLayer> layers = new ArrayList<>(8);
+            if (includeCacerts) {
+                layers.add(findCertificates());
+            }
+
+            String ldLinux = null;
+            if (hasNatives) {
+                if (!singletonList("false").equals(includeNatives)) {
+                    layers.add(findNatives());
+                }
+
+                if (useLDD) {
+                    ldLinux = addLddLibsAndFindLdLinux(env, layers);
+                }
+            }
+
+            if (otherFiles != null && !otherFiles.isEmpty()) {
+                layers.add(createOthersLayer());
+            }
+            layers.add(FileEntriesLayer.builder()
+                    .setName("Binary")
+                    .addEntry(new FileEntry(
+                            source, AbsoluteUnixPath.get(entrypoint.iterator().next()), FilePermissions.fromOctalString("755"),
+                            getTimestamp(source)))
+                    .build());
+
+            from.setFileEntriesLayers(layers);
+
+            if (!env.isEmpty()) {
+                from.setEnvironment(env);
+            }
+
+            if (entrypoint == null || entrypoint.size() < 1) {
+                throw new IllegalArgumentException("No entrypoint set");
+            }
+            from.setEntrypoint(Stream.concat(Stream.concat(Stream.concat(
+                    useLDD && ldLinux != null && !skipLdLinuxInEntrypoint ? Stream.of(ldLinux) : Stream.empty(),
+                    entrypoint.stream()),
+                    hasNatives ? Stream.of("-Djava.library.path=" + nativeRootDir) : Stream.empty()),
+                    includeCacerts ? Stream.of("-Djavax.net.ssl.trustStore=" + cacertsTarget) : Stream.empty())
                     .collect(toList()));
 
             return from;
         } catch (final InvalidImageReferenceException | IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    // todo: enrich to be able to use manual resolution using LD_LIBRARY_PATH or default without doing an exec
+    private String addLddLibsAndFindLdLinux(final Map<String, String> env, final List<FileEntriesLayer> layers) throws IOException {
+        getLog().info("Running ldd on " + binarySource.getName());
+        final Process ldd = new ProcessBuilder("ldd", binarySource.getAbsolutePath()).start();
+        try {
+            final int status = ldd.waitFor();
+            if (status != 0) {
+                throw new IllegalArgumentException("LDD failed with status " + status + ": " + slurp(ldd.getErrorStream()));
+            }
+        } catch (final InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+        final Collection<Path> files;
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(ldd.getInputStream(), StandardCharsets.UTF_8))) {
+            files = reader.lines()
+                    .filter(it -> it.contains("/"))
+                    .map(it -> {
+                        final int start = it.indexOf('/');
+                        int end = it.indexOf(' ', start);
+                        if (end < 0) {
+                            end = it.indexOf('(', start);
+                            if (end < 0) {
+                                end = it.length();
+                            }
+                        }
+                        return it.substring(start, end);
+                    })
+                    .map(Paths::get)
+                    .filter(Files::exists)
+                    .collect(toList());
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
+        String ldLinux = null;
+        if (!files.isEmpty()) {
+            final FileEntriesLayer.Builder libraries = FileEntriesLayer.builder()
+                    .setName("Libraries");
+            // copy libs + tries to extract ld-linux-x86-64.so.2 if present
+            ldLinux = files.stream()
+                    .map(file -> {
+                        final String fileName = file.getFileName().toString();
+                        try {
+                            libraries.addEntry(
+                                    file, AbsoluteUnixPath.get(nativeRootDir).resolve(fileName),
+                                    FilePermissions.fromPosixFilePermissions(Files.getPosixFilePermissions(file)), getTimestamp(file));
+                        } catch (final IOException e) {
+                            throw new IllegalStateException(e);
+                        }
+                        return fileName;
+                    })
+                    .filter(it -> it.startsWith("ld-linux"))
+                    .min((a, b) -> { // best is "ld-linux-x86-64.so.2"
+                        if ("ld-linux-x86-64.so.2".equals(a)) {
+                            return -1;
+                        }
+                        if ("ld-linux-x86-64.so.2".equals(b)) {
+                            return 1;
+                        }
+                        if (a.endsWith(".so.2")) {
+                            return -1;
+                        }
+                        if (b.endsWith(".so.2")) {
+                            return -1;
+                        }
+                        return a.compareTo(b);
+                    })
+                    .map(it -> AbsoluteUnixPath.get(nativeRootDir).resolve(it).toString()) // make it absolute since it will be added to the entrypoint
+                    .orElse(null);
+
+            layers.add(libraries.build());
+            env.putIfAbsent("LD_LIBRARY_PATH", AbsoluteUnixPath.get(nativeRootDir).toString());
+        }
+        return ldLinux;
+    }
+
+    private String slurp(final InputStream stream) {
+        if (stream == null) {
+            return "-";
+        }
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            return reader.lines().collect(joining("\n"));
+        } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -340,11 +467,18 @@ public abstract class JibMojo extends ArthurMojo {
         getLog().info("Using natives from '" + home + "'");
         final Path jreLib = home.resolve("jre/lib");
         final boolean isWin = Files.exists(jreLib.resolve("java.lib"));
-        final Path nativeFolder = isWin ?
+        Path nativeFolder = isWin ?
                 jreLib /* win/cygwin */ :
-                jreLib.resolve(System.getProperty("os.arch", "amd64"));
+                jreLib.resolve(System.getProperty("os.arch", "amd64")); // older graalvm, for 20.x it is no more needed
         if (!Files.exists(nativeFolder)) {
-            throw new IllegalArgumentException("No native folder '" + nativeFolder + "' found.");
+            nativeFolder = nativeFolder.getParent();
+            try {
+                if (!Files.exists(nativeFolder) || !Files.list(nativeFolder).anyMatch(it -> it.getFileName().toString().endsWith(".so"))) {
+                    throw new IllegalArgumentException("No native folder '" + nativeFolder + "' found.");
+                }
+            } catch (final IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
         final boolean includeAll = singletonList("true").equals(includeNatives) || singletonList("*").equals(includeNatives);
         final Predicate<Path> include = includeAll ?
@@ -354,6 +488,7 @@ public abstract class JibMojo extends ArthurMojo {
         };
         final FileEntriesLayer.Builder builder = FileEntriesLayer.builder();
         final Collection<String> collected = new ArrayList<>();
+        final Path nativeDir = nativeFolder; // ref for lambda
         try {
             Files.walkFileTree(nativeFolder, new SimpleFileVisitor<Path>() {
                 @Override
@@ -361,7 +496,7 @@ public abstract class JibMojo extends ArthurMojo {
                     if (include.test(file)) {
                         collected.add(file.getFileName().toString());
                         builder.addEntry(
-                                file, AbsoluteUnixPath.get(nativeRootDir).resolve(nativeFolder.relativize(file).toString()),
+                                file, AbsoluteUnixPath.get(nativeRootDir).resolve(nativeDir.relativize(file).toString()),
                                 FilePermissions.DEFAULT_FILE_PERMISSIONS, getTimestamp(file));
                     }
                     return super.visitFile(file, attrs);
