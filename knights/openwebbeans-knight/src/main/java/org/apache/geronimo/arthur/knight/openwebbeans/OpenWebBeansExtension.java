@@ -398,7 +398,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
             }
             properties.putIfAbsent("org.apache.openwebbeans.se.PreScannedCDISeScannerService.classes", beanClassesList);
 
-            if (!Boolean.getBoolean("extension.openwebbeans.runtime.properties.skipOptimizations")) {
+            if (!Boolean.parseBoolean("extension.openwebbeans.runtime.properties.skipOptimizations")) {
                 properties.putIfAbsent("org.apache.webbeans.spi.deployer.skipValidations", "true");
                 properties.putIfAbsent("org.apache.webbeans.spi.deployer.skipVetoedOnPackages", "true");
             }
@@ -436,7 +436,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
         enrichProperties(config, false); // before starting ensure we use a deterministic proxy generation config
         config.stringPropertyNames().forEach(k -> initializer.addProperty(k, config.getProperty(k)));
 
-        if (Boolean.getBoolean(context.getProperty("extension.openwebbeans.container.se.disableDiscovery"))) {
+        if (Boolean.parseBoolean(context.getProperty("extension.openwebbeans.container.se.disableDiscovery"))) {
             initializer.disableDiscovery();
         }
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
