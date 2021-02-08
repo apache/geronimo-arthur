@@ -587,6 +587,9 @@ public class NativeImageMojo extends ArthurMojo {
         rootDependency.setType(artifact.getExtension());
 
         final MavenProject fakeProject = new MavenProject();
+        fakeProject.setRemoteArtifactRepositories(project.getRemoteArtifactRepositories());
+        fakeProject.setSnapshotArtifactRepository(project.getDistributionManagementArtifactRepository());
+        fakeProject.setPluginArtifactRepositories(project.getPluginArtifactRepositories());
         fakeProject.getDependencies().add(rootDependency);
 
         final DependencyResolutionRequest request = new DefaultDependencyResolutionRequest();
@@ -619,7 +622,7 @@ public class NativeImageMojo extends ArthurMojo {
                     return true;
                 }
             });
-            return artifacts.stream();
+            return artifacts.stream().map(NativeImageMojo.this::resolve);
         } catch (final DependencyResolutionException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
