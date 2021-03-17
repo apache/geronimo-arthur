@@ -31,6 +31,7 @@ import org.apache.webbeans.config.WebBeansContext;
 import org.apache.webbeans.container.BeanManagerImpl;
 import org.apache.webbeans.conversation.ConversationImpl;
 import org.apache.webbeans.corespi.DefaultSingletonService;
+import org.apache.webbeans.corespi.scanner.xbean.OwbAnnotationFinder;
 import org.apache.webbeans.corespi.se.DefaultScannerService;
 import org.apache.webbeans.corespi.se.SimpleApplicationBoundaryService;
 import org.apache.webbeans.corespi.se.StandaloneContextsService;
@@ -100,6 +101,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
@@ -163,6 +165,14 @@ public class OpenWebBeansExtension implements ArthurExtension {
                         model.setAllDeclaredConstructors(true);
                         context.register(model);
                     });
+            // 4.3 needed by prescanned scanner
+            final ClassReflectionModel owbFinder = new ClassReflectionModel();
+            owbFinder.setName(OwbAnnotationFinder.class.getName());
+            final ClassReflectionModel.FieldReflectionModel owbFinderLinking = new ClassReflectionModel.FieldReflectionModel();
+            owbFinderLinking.setAllowWrite(true);
+            owbFinder.setName("linking");
+            owbFinder.setFields(singletonList(owbFinderLinking));
+            context.register(owbFinder);
             // 5 annotations
             final Collection<Class<?>> customAnnotations = Stream.concat(
                     context.findAnnotatedClasses(Qualifier.class).stream(),
