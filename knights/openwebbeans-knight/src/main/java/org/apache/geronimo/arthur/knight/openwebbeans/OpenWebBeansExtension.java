@@ -170,7 +170,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
             owbFinder.setName(OwbAnnotationFinder.class.getName());
             final ClassReflectionModel.FieldReflectionModel owbFinderLinking = new ClassReflectionModel.FieldReflectionModel();
             owbFinderLinking.setAllowWrite(true);
-            owbFinder.setName("linking");
+            owbFinderLinking.setName("linking");
             owbFinder.setFields(singletonList(owbFinderLinking));
             context.register(owbFinder);
             // 5 annotations
