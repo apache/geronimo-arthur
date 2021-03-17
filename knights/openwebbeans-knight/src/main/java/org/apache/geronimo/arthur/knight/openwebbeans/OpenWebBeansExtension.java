@@ -31,7 +31,6 @@ import org.apache.webbeans.config.WebBeansContext;
 import org.apache.webbeans.container.BeanManagerImpl;
 import org.apache.webbeans.conversation.ConversationImpl;
 import org.apache.webbeans.corespi.DefaultSingletonService;
-import org.apache.webbeans.corespi.scanner.xbean.OwbAnnotationFinder;
 import org.apache.webbeans.corespi.se.DefaultScannerService;
 import org.apache.webbeans.corespi.se.SimpleApplicationBoundaryService;
 import org.apache.webbeans.corespi.se.StandaloneContextsService;
@@ -59,6 +58,7 @@ import org.apache.webbeans.spi.LoaderService;
 import org.apache.webbeans.spi.ResourceInjectionService;
 import org.apache.webbeans.spi.ScannerService;
 import org.apache.webbeans.spi.SecurityService;
+import org.apache.xbean.finder.AnnotationFinder;
 import org.apache.xbean.finder.filter.Filter;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -167,7 +167,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
                     });
             // 4.3 needed by prescanned scanner
             final ClassReflectionModel owbFinder = new ClassReflectionModel();
-            owbFinder.setName(OwbAnnotationFinder.class.getName());
+            owbFinder.setName(AnnotationFinder.class.getName());
             final ClassReflectionModel.FieldReflectionModel owbFinderLinking = new ClassReflectionModel.FieldReflectionModel();
             owbFinderLinking.setAllowWrite(true);
             owbFinderLinking.setName("linking");
