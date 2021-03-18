@@ -25,6 +25,8 @@ The extensions are generally responsible to generate a valid configuration to le
 - link:winegrower-knight.html[Winegrower]: Apache winegrower (Cloud OSGi runtime) support.
 - link:openwebbeans-knight.html[OpenWebBeans]: Apache OpenWebBeans (CDI SE runtime) support.
 - link:slf4j-knight.html[SLF4J]: SLF4J (JUL) integration.
+- derby-knight: Apache Derby integration.
+- openjpa-knight: Apache OpenJPA integration.
 
 == Configure a Knight in Arthur Maven plugin
 

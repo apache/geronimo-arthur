@@ -186,31 +186,7 @@ public class ConfigurationGenerator implements Runnable {
         final Iterator<ClassReflectionModel> modelIterator = classReflectionModels.iterator();
         final ClassReflectionModel model = modelIterator.next();
         while (modelIterator.hasNext()) {
-            final ClassReflectionModel next = modelIterator.next();
-            if (next.getAllDeclaredClasses()) {
-                model.setAllDeclaredClasses(true);
-            }
-            if (next.getAllDeclaredFields()) {
-                model.setAllDeclaredFields(true);
-            }
-            if (next.getAllDeclaredConstructors()) {
-                model.setAllDeclaredConstructors(true);
-            }
-            if (next.getAllDeclaredMethods()) {
-                model.setAllDeclaredMethods(true);
-            }
-            if (next.getAllPublicMethods()) {
-                model.setAllPublicMethods(true);
-            }
-            if (next.getAllPublicFields()) {
-                model.setAllPublicFields(true);
-            }
-            if (next.getAllPublicConstructors()) {
-                model.setAllPublicConstructors(true);
-            }
-            if (next.getAllPublicClasses()) {
-                model.setAllPublicClasses(true);
-            }
+            model.merge(modelIterator.next());
         }
         return model;
     }

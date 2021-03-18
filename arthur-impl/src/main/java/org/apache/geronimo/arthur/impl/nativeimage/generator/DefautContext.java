@@ -85,8 +85,17 @@ public class DefautContext implements ArthurExtension.Context {
 
     @Override
     public void register(final ClassReflectionModel classReflectionModel) {
-        reflections.removeIf(it -> Objects.equals(classReflectionModel.getName(), it.getName()));
-        reflections.add(classReflectionModel);
+        reflections.stream()
+                .filter(it -> Objects.equals(classReflectionModel.getName(), it.getName()))
+                .findFirst()
+                .map(it -> {
+                    it.merge(classReflectionModel);
+                    return it;
+                })
+                .orElseGet(() -> {
+                    reflections.add(classReflectionModel);
+                    return classReflectionModel;
+                });
         modified = true;
     }
 
@@ -98,9 +107,14 @@ public class DefautContext implements ArthurExtension.Context {
 
     @Override
     public void register(final ResourceBundleModel resourceBundleModel) {
-        bundles.removeIf(it -> Objects.equals(it.getName(), resourceBundleModel.getName()));
-        bundles.add(resourceBundleModel);
-        modified = true;
+        bundles.stream()
+                .filter(it -> Objects.equals(resourceBundleModel.getName(), it.getName()))
+                .findFirst()
+                .orElseGet(() -> {
+                    modified = true;
+                    bundles.add(resourceBundleModel);
+                    return resourceBundleModel;
+                });
     }
 
     @Override

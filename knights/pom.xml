@@ -33,6 +33,8 @@
     <module>winegrower-knight</module>
     <module>openwebbeans-knight</module>
     <module>slf4j-knight</module>
+    <module>openjpa-knight</module>
+    <module>derby-knight</module>
   </modules>
 
   <dependencies>

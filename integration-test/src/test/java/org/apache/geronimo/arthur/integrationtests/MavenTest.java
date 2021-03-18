@@ -55,6 +55,14 @@ class MavenTest {
     void scr() {}
 
     @Test
+    @Spec(expectedOutput = "" +
+            "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain -" +
+            " findbyid => root:id=10000,name=root_1,children=[child:id=10001,name=child_2, child:id=10000,name=child_1]\n" +
+            "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain -" +
+            " criteria builder => root:id=10000,name=root_1,children=[child:id=10001,name=child_2, child:id=10000,name=child_1]")
+    void openjpa() {}
+
+    @Test
     @Spec(expectedOutput = "pong", forwardedExecutionSystemProperties = {
             "MavenTest.jsch.port", "java.library.path", "javax.net.ssl.trustStore"
     })

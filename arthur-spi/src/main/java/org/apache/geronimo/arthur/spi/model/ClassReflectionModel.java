@@ -16,11 +16,15 @@
  */
 package org.apache.geronimo.arthur.spi.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.Collection;
 
-import lombok.Data;
-
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ClassReflectionModel {
     private String name;
     private Boolean allDeclaredConstructors;
@@ -34,13 +38,60 @@ public class ClassReflectionModel {
     private Collection<FieldReflectionModel> fields;
     private Collection<MethodReflectionModel> methods;
 
+    public ClassReflectionModel allPublic(final String name) {
+        return new ClassReflectionModel(name, null, true, null, true, null, null, null, true, null, null);
+    }
+
+    public ClassReflectionModel allPublicConstructors(final String name) {
+        return new ClassReflectionModel(name, null, true, null, null, null, null, null, null, null, null);
+    }
+
+    public ClassReflectionModel allDeclaredConstructors(final String name) {
+        return new ClassReflectionModel(name, null, null, true, null, null, null, null, null, null, null);
+    }
+
+    public ClassReflectionModel allDeclared(final String name) {
+        return new ClassReflectionModel(name, true, null, true, null, null, null, true, null, null, null);
+    }
+
+    public void merge(final ClassReflectionModel other) {
+        if (other.getAllDeclaredClasses() != null && other.getAllDeclaredClasses()) {
+            setAllDeclaredClasses(true);
+        }
+        if (other.getAllDeclaredFields() != null && other.getAllDeclaredFields()) {
+            setAllDeclaredFields(true);
+        }
+        if (other.getAllDeclaredConstructors() != null && other.getAllDeclaredConstructors()) {
+            setAllDeclaredConstructors(true);
+        }
+        if (other.getAllDeclaredMethods() != null && other.getAllDeclaredMethods()) {
+            setAllDeclaredMethods(true);
+        }
+        if (other.getAllPublicMethods() != null && other.getAllPublicMethods()) {
+            setAllPublicMethods(true);
+        }
+        if (other.getAllPublicFields() != null && other.getAllPublicFields()) {
+            setAllPublicFields(true);
+        }
+        if (other.getAllPublicConstructors() != null && other.getAllPublicConstructors()) {
+            setAllPublicConstructors(true);
+        }
+        if (other.getAllPublicClasses() != null && other.getAllPublicClasses()) {
+            setAllPublicClasses(true);
+        }
+    }
+
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class FieldReflectionModel {
         private String name;
         private Boolean allowWrite;
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class MethodReflectionModel {
         private String name;
         private Collection<Class<?>> parameterTypes;
