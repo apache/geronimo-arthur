@@ -17,7 +17,6 @@
 package org.apache.geronimo.arthur.integrationtests;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.geronimo.arthur.integrationtests.entities.Child;
 import org.apache.geronimo.arthur.integrationtests.entities.Root;
 import org.slf4j.Logger;
@@ -36,14 +35,12 @@ import javax.persistence.spi.PersistenceUnitInfo;
 import javax.persistence.spi.PersistenceUnitTransactionType;
 import javax.sql.DataSource;
 import java.net.URL;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ServiceLoader;
-import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -58,17 +55,17 @@ public final class OpenJPAMain {
      * [main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain - criteria builder => root:id=10000,name=root_1,children=[child:id=10001,name=child_2, child:id=10000,name=child_1]
      */
     public static void main(final String... args) throws SQLException {
+        setIfMissing("hsqldb.reconfig_logging", "false");
         setIfMissing("org.slf4j.simpleLogger.logFile", "System.out");
         setIfMissing("org.slf4j.simpleLogger.defaultLogLevel", "WARN");
         setIfMissing("org.slf4j.simpleLogger.log.org.apache.geronimo.arthur.integrationtests", "INFO");
-        setIfMissing("derby.stream.error.file", "target/derby_" + UUID.randomUUID() + ".log");
 
         final BasicDataSource dataSource = createDataSource();
         final Map<String, Object> map = new HashMap<>();
         final Properties properties = new Properties();
         properties.setProperty("javax.persistence.schema-generation.database.action", "drop-and-create");
-        properties.setProperty("openjpa.Log", "DefaultLevel=WARN, Runtime=WARN, Tool=WARN");
-        properties.setProperty("openjpa.Sequence", "class-table(Table=SEQUENCES, Increment=20, InitialValue=10000)");
+        properties.setProperty("openjpa.Log", "DefaultLevel=WARN, Runtime=WARN, Tool=WARN"); // SQL=TRACE for debugging purposes
+        properties.setProperty("openjpa.Sequence", "class-table(Increment=20, InitialValue=1)");
         final EntityManagerFactory factory = ServiceLoader.load(PersistenceProvider.class).iterator().next()
                 // use no xml option for now
                 .createContainerEntityManagerFactory(newInfo(dataSource, properties), map);
@@ -91,6 +88,7 @@ public final class OpenJPAMain {
             factory.close();
             dataSource.close();
         }
+        System.out.flush();
     }
 
     private static long createGraph(final EntityManager entityManager) {
@@ -117,11 +115,11 @@ public final class OpenJPAMain {
     }
 
     private static BasicDataSource createDataSource() throws SQLException {
-        DriverManager.registerDriver(new EmbeddedDriver());
+        // DriverManager.registerDriver(new jdbcDriver());
         final BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
-        dataSource.setUrl("jdbc:derby:target/arthur_" + UUID.randomUUID().toString().replace('-', '_') + ";create=true");
-        dataSource.setUsername("sa");
+        dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
+        dataSource.setUrl("jdbc:hsqldb:mem:arthur;hsqldb.tx=MVCC");
+        dataSource.setUsername("SA");
         dataSource.setPassword("");
         dataSource.setMinIdle(1);
         return dataSource;

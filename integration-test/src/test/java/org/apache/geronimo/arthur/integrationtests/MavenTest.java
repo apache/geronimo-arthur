@@ -16,14 +16,6 @@
  */
 package org.apache.geronimo.arthur.integrationtests;
 
-import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.Objects;
-
 import org.apache.geronimo.arthur.integrationtests.container.MavenContainer;
 import org.apache.geronimo.arthur.integrationtests.junit5.Invocation;
 import org.apache.geronimo.arthur.integrationtests.junit5.Spec;
@@ -33,9 +25,16 @@ import org.apache.sshd.server.auth.BuiltinUserAuthFactories;
 import org.apache.sshd.server.command.AbstractCommandSupport;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.Objects;
+
+import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Testcontainers
 class MavenTest {
@@ -56,10 +55,10 @@ class MavenTest {
 
     @Test
     @Spec(expectedOutput = "" +
-            "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain -" +
-            " findbyid => root:id=10000,name=root_1,children=[child:id=10001,name=child_2, child:id=10000,name=child_1]\n" +
-            "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain -" +
-            " criteria builder => root:id=10000,name=root_1,children=[child:id=10001,name=child_2, child:id=10000,name=child_1]")
+            "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain" +
+            " - findbyid => root:id=1,name=root_1,children=[child:id=2,name=child_2, child:id=1,name=child_1]\n" +
+            "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain" +
+            " - criteria builder => root:id=1,name=root_1,children=[child:id=2,name=child_2, child:id=1,name=child_1]")
     void openjpa() {}
 
     @Test

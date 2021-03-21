@@ -18,6 +18,7 @@ package org.apache.geronimo.arthur.knight.derby;
 
 import org.apache.geronimo.arthur.spi.ArthurExtension;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
+import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.io.InputStream;
 import java.sql.Driver;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
@@ -36,6 +38,7 @@ public class DerbyExtension implements ArthurExtension {
         tryToRegisterSPI(context);
         context.findImplementations(Driver.class)
                 .forEach(it -> registerClass(context, it.getName()));
+        registerI18n(context);
 
         // extraDBMSclasses.properties + StoredFormatIds + ClassName + RegisteredFormatIds
         Stream.of(
@@ -341,8 +344,8 @@ public class DerbyExtension implements ArthurExtension {
         });
         context.register(new ClassReflectionModel("org.apache.derby.iapi.services.context.ContextManager", null, null, null, null, null, null, null, null, null, null));
         Stream.of(
-                "org.apache.derby.iapi.services.monitor.Monitor",
-                "org.apache.derby.iapi.services.context.ContextService"
+                "org.apache.derby.jdbc.AutoloadedDriver",
+                "org.apache.derby.jdbc.EmbeddedDriver"
         ).forEach(it -> {
             try {
                 context.initializeAtRunTime(context.loadClass(it).getName());
@@ -350,6 +353,10 @@ public class DerbyExtension implements ArthurExtension {
                 // no-op
             }
         });
+    }
+
+    private void registerI18n(final Context context) {
+        IntStream.rangeClosed(0, 49).forEach(it -> context.register(new ResourceBundleModel("org.apache.derby.loc.m" + it)));
     }
 
     private void registerClass(final Context context, final String name) {

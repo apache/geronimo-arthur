@@ -20,47 +20,22 @@
          xsi:schemaLocation="
             http://maven.apache.org/POM/4.0.0
             http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <!--parent>
+  <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>21</version>
-  </parent-->
-
-  <parent>
-    <artifactId>knights</artifactId>
-    <groupId>org.apache.geronimo.arthur.knights</groupId>
-    <version>1.0.3-SNAPSHOT</version>
   </parent>
+
   <properties>
-    <!-- main deps -->
-    <slf4j.version>1.7.28</slf4j.version>
-    <ziplock.version>8.0.0</ziplock.version>
-
-    <!-- knights -->
-    <jsch.version>0.1.55</jsch.version>
-    <graalvm.version>20.3.0</graalvm.version>
-    <winegrower.version>1.0.0</winegrower.version>
-
-    <!-- plugin versions/confs -->
-    <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-    <maven.compiler.source>8</maven.compiler.source>
-    <maven.compiler.target>8</maven.compiler.target>
-
-    <!-- jar vars -->
-    <geronimo-arthur.shortname>${project.artifactId}</geronimo-arthur.shortname>
-    <geronimo-arthur.Automatic-Module-Name>${project.groupId}.${geronimo-arthur.shortname}
-    </geronimo-arthur.Automatic-Module-Name>
-    <junit.version>5.7.0</junit.version>
-
     <openjpa.version>3.1.2</openjpa.version>
-    <derby.version>10.14.2.0</derby.version>
+    <hsqldb.version>2.5.1</hsqldb.version>
   </properties>
 
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.geronimo.arthur.integrationtests</groupId>
   <artifactId>openjpa</artifactId>
-  <!--<version>1.0.0-SNAPSHOT</version>-->
+  <version>1.0.0-SNAPSHOT</version>
   <name>Arthur :: Integration Tests :: OpenJPA</name>
 
   <dependencies>
@@ -87,14 +62,9 @@
       <version>2.8.0</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derbytools</artifactId>
-      <version>${derby.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derby</artifactId>
-      <version>${derby.version}</version>
+      <groupId>org.hsqldb</groupId>
+      <artifactId>hsqldb</artifactId>
+      <version>${hsqldb.version}</version>
     </dependency>
   </dependencies>
 
@@ -138,9 +108,12 @@
         <configuration>
           <main>org.apache.geronimo.arthur.integrationtests.OpenJPAMain</main>
           <graalExtensions>
-            <graalExtension>derby</graalExtension>
+            <graalExtension>hsqldb</graalExtension>
             <graalExtension>openjpa</graalExtension>
           </graalExtensions>
+          <customOptions>
+            <customOption>-J-Xmx10g</customOption>
+          </customOptions>
           <!-- avoid to conflict with host cache since we mount the local m2 to speed up the execution -->
           <graalCacheGav>org.apache.geronimo.arthur.cache:graal-integrationtests</graalCacheGav>
         </configuration>

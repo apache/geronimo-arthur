@@ -36,7 +36,30 @@ public class OpenJPAExtension implements ArthurExtension {
         registerI18n(context);
         registerDictionaryResources(context);
         registerPrimitiveWrappers(context);
+        registerBuildTimeProxies(context);
+        registerEnumForValuesReflection(context);
         registerDBCP2IfPresent(context);
+        context.register(new ResourceModel("META-INF\\/org\\.apache\\.openjpa\\.revision\\.properties"));
+        context.register(new ResourceBundleModel("org.apache.openjpa.jdbc.schema.localizer"));
+    }
+
+    private void registerEnumForValuesReflection(final Context context) {
+        context.register(new ClassReflectionModel("org.apache.openjpa.persistence.jdbc.FetchMode", null, null, null, true, null, null, null, null, null, null));
+        context.register(new ClassReflectionModel("org.apache.openjpa.persistence.jdbc.FetchDirection", null, null, null, true, null, null, null, null, null, null));
+        context.register(new ClassReflectionModel("org.apache.openjpa.persistence.jdbc.JoinSyntax", null, null, null, true, null, null, null, null, null, null));
+    }
+
+    private void registerBuildTimeProxies(final Context context) {
+        Stream.of(
+                "java.sql.Date", "java.sql.Time", "java.sql.Timestamp",
+                "java.util.ArrayList", "java.util.Date", "java.util.EnumMap",
+                "java.util.GregorianCalendar", "java.util.HashMap", "java.util.HashSet",
+                "java.util.Hashtable", "java.util.IdentityHashMap", "java.util.LinkedHashMap", "java.util.LinkedHashSet",
+                "java.util.LinkedList", "java.util.PriorityQueue", "java.util.Properties", "java.util.TreeMap",
+                "java.util.TreeSet", "java.util.Vector")
+                .map(it -> "org.apache.openjpa.util." + it.replace('.', '$') + "$proxy")
+                .map(it -> new ClassReflectionModel(it, null, true, null, null, null, null, null, null, null, null))
+                .forEach(context::register);
     }
 
     // see Options class (stringToObject method)
@@ -148,6 +171,7 @@ public class OpenJPAExtension implements ArthurExtension {
     // one option is to precompute it for a pure openjpa deployment and just add all user impl only
     private Stream<? extends Class<?>> spiClasses(final Context context) {
         return Stream.of(
+                "org.apache.openjpa.persistence.FetchPlan",
                 "org.apache.openjpa.kernel.BrokerFactory",
                 "org.apache.openjpa.lib.log.LogFactory",
                 "org.apache.openjpa.lib.conf.Configurable",
@@ -264,14 +288,9 @@ public class OpenJPAExtension implements ArthurExtension {
     }
 
     private boolean needsReflection(final String name) {
-        return !name.equals("org.apache.openjpa.ee.OSGiManagedRuntime") &&
+        return name.startsWith("org.apache.openjpa.") &&
+                !name.equals("org.apache.openjpa.ee.OSGiManagedRuntime") &&
                 !name.startsWith("org.apache.openjpa.ee.WAS") &&
-                !name.startsWith("org.slf4j.") &&
-                !name.startsWith("org.apache.commons.") &&
-                !name.startsWith("java.") &&
-                !name.startsWith("javax.") &&
-                !name.startsWith("jakarta.") &&
-                !name.contains("$util") &&
                 !name.contains("$1") &&
                 !name.startsWith("org.apache.openjpa.lib.jdbc.LoggingConnectionDecorator$") &&
                 !(name.endsWith("Comparator") && name.contains("$"));

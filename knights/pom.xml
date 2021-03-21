@@ -34,7 +34,10 @@
     <module>openwebbeans-knight</module>
     <module>slf4j-knight</module>
     <module>openjpa-knight</module>
+    <module>hsqldb-knight</module>
+    <!-- not yet possible - derby generates bytecode in a reflectloader for statements
     <module>derby-knight</module>
+    -->
   </modules>
 
   <dependencies>

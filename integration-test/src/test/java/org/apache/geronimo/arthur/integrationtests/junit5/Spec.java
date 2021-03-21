@@ -16,16 +16,21 @@
  */
 package org.apache.geronimo.arthur.integrationtests.junit5;
 
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import static java.util.Objects.requireNonNull;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.joining;
-import static org.apache.geronimo.arthur.integrationtests.junit5.Spec.ExpectedType.EQUALS;
-import static org.apache.ziplock.JarLocation.jarFromResource;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.geronimo.arthur.integrationtests.container.MavenContainer;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
+import org.junit.platform.commons.util.AnnotationUtils;
+import org.testcontainers.containers.Container.ExecResult;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;
@@ -45,22 +50,16 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-import org.apache.geronimo.arthur.integrationtests.container.MavenContainer;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
-import org.junit.platform.commons.util.AnnotationUtils;
-import org.testcontainers.containers.Container.ExecResult;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.MountableFile;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import static java.util.Objects.requireNonNull;
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
+import static org.apache.geronimo.arthur.integrationtests.junit5.Spec.ExpectedType.EQUALS;
+import static org.apache.ziplock.JarLocation.jarFromResource;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Target(METHOD)
 @Retention(RUNTIME)
@@ -90,7 +89,8 @@ public @interface Spec {
         }
     }
 
-    @Slf4j // todo: make it parallelisable?
+    @Slf4j
+            // todo: make it parallelisable?
     class Impl implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
         public static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(Impl.class);
@@ -121,6 +121,9 @@ public @interface Spec {
                 final ExecResult result = buildAndRun(
                         mvn, spec.binary().replace("${project.artifactId}", findArtifactId(root.resolve("pom.xml"))),
                         spec.forwardedExecutionSystemProperties());
+                log.info("Exit code: {}", result.getExitCode());
+                log.info("Stdout:\n>{}<", result.getStdout());
+                log.info("Stderr:\n>{}<", result.getStderr());
                 store.put(ExecResult.class, result);
                 assertEquals(spec.exitCode(), result.getExitCode(), () -> result.getStdout() + result.getStderr());
                 spec.expectedType().assertFn.accept(

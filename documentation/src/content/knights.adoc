@@ -24,13 +24,14 @@ The extensions are generally responsible to generate a valid configuration to le
 - link:jsch-knight.html[JSch]: it contains some end user API integrated with built-in extensions to simplify application graal-ification,
 - link:winegrower-knight.html[Winegrower]: Apache winegrower (Cloud OSGi runtime) support.
 - link:openwebbeans-knight.html[OpenWebBeans]: Apache OpenWebBeans (CDI SE runtime) support.
-- link:slf4j-knight.html[SLF4J]: SLF4J (JUL) integration.
-- derby-knight: Apache Derby integration.
-- openjpa-knight: Apache OpenJPA integration.
+- link:slf4j-knight.html[SLF4J]: SLF4J (JUL binding) integration.
+- link:hsqldb-knight[HSQLDB]: HSQL database integration.
+- link:openjpa-knight[OpenJPA]: Apache OpenJPA integration.
+// - derby-knight: Apache Derby integration.
 
 == Configure a Knight in Arthur Maven plugin
 
-A knight can is typically configured in `graalExtensions`, it can used the long notation but also a shortcut notation since all Knights respect the same convention.
+A knight can typically be configured in `graalExtensions`, it can used the long notation but also a shortcut notation since all Knights respect the same convention.
 
 Typically the following knight:
 
@@ -51,6 +52,8 @@ Can just be referenced as `jsch` in the Arthur Maven plugin:
   <graalExtension>jsch</graalExtension>
 </graalExtensions>
 ----
+
+TIP: if you need a control over knight dependencies - to exclude/replace some dependencies - you can also just define it as a standard dependency.
 
 ---
 
