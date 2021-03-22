@@ -77,10 +77,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
+import static java.util.Comparator.comparing;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 import static lombok.AccessLevel.PROTECTED;
 import static org.apache.maven.plugins.annotations.LifecyclePhase.PACKAGE;
 import static org.apache.maven.plugins.annotations.ResolutionScope.TEST;
@@ -478,7 +478,9 @@ public class NativeImageMojo extends ArthurMojo {
                                     // graalextensions
                                     StreamSupport.stream(super.loadExtensions().spliterator(), false))
                                     // ensure we dont duplicate any extension
-                                    .collect(toSet());
+                                    .distinct()
+                                    .sorted(comparing(ArthurExtension::order))
+                                    .collect(toList());
                         }
                     }
                             .run());
