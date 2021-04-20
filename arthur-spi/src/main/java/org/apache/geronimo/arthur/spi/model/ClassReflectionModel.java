@@ -87,6 +87,12 @@ public class ClassReflectionModel {
     public static class FieldReflectionModel {
         private String name;
         private Boolean allowWrite;
+        private Boolean allowUnsafeAccess;
+
+        public FieldReflectionModel(final String name, final Boolean allowWrite) {
+            this.name = name;
+            this.allowWrite = allowWrite;
+        }
     }
 
     @Data
