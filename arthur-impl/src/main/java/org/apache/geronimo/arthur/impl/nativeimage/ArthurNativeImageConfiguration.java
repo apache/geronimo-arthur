@@ -86,7 +86,7 @@ public class ArthurNativeImageConfiguration {
     private boolean enableAllSecurityServices = true;
 
     @GraalCommandPart(order = 20, template = "--no-server")
-    private boolean noServer = true;
+    private boolean noServer = false;
 
     @GraalCommandPart(order = 21)
     private String main;

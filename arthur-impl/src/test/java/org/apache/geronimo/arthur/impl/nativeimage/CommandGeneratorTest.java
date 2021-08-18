@@ -110,7 +110,7 @@ class CommandGeneratorTest {
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
                                 "--no-fallback", "--static", "--allow-incomplete-classpath",
                                 "--report-unsupported-elements-at-runtime", "--enable-all-security-services",
-                                "--no-server", "main", "main.graal.exec")),
+                                "main", "main.graal.exec")),
                 new Case(
                         classpathConfig,
                         asList(
@@ -119,7 +119,7 @@ class CommandGeneratorTest {
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
                                 "--no-fallback", "--static", "--allow-incomplete-classpath",
                                 "--report-unsupported-elements-at-runtime", "--enable-all-security-services",
-                                "--no-server", "main", "main.graal.exec")),
+                                "main", "main.graal.exec")),
                 new Case(
                         filledConfig,
                         asList(
