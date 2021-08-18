@@ -33,6 +33,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -104,6 +105,7 @@ public class Extractor {
                             }
                         } else {
                             Files.copy(archiveInputStream, target, StandardCopyOption.REPLACE_EXISTING);
+                            Files.setLastModifiedTime(target, FileTime.fromMillis(entry.getLastModifiedDate().getTime()));
                             setExecutableIfNeeded(target);
                         }
                     }
