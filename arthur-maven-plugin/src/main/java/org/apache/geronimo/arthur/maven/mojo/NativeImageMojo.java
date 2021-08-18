@@ -225,8 +225,10 @@ public class NativeImageMojo extends ArthurMojo {
 
     /**
      * Should graal build server be used (a bit like gradle daemon), it is very discouraged to be used cause invalidation is not yet well handled.
+     * Deprecated in recent graalvm versions.
      */
-    @Parameter(property = "arthur.noServer", defaultValue = "true")
+    @Deprecated
+    @Parameter(property = "arthur.noServer", defaultValue = "false")
     private boolean noServer;
 
     //
