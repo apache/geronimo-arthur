@@ -18,6 +18,7 @@ package org.apache.geronimo.arthur.impl.nativeimage.process;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProcessExecutor implements Runnable {
     private final boolean inheritIO;
     private final List<String> command;
+    private final Map<String, String> env;
 
     @Override
     public void run() {
@@ -37,6 +39,9 @@ public class ProcessExecutor implements Runnable {
         Process process = null;
         try {
             final ProcessBuilder builder = new ProcessBuilder(command);
+            if (env != null) {
+                builder.environment().putAll(env);
+            }
             if (inheritIO) {
                 builder.inheritIO();
             }

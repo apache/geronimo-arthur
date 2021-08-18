@@ -36,6 +36,7 @@ import java.util.ServiceLoader;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
 
 @Slf4j
@@ -56,7 +57,8 @@ public class ArthurNativeImageExecutor implements Runnable {
         final List<String> command = new CommandGenerator().generate(configuration.configuration);
         new ProcessExecutor(
                 configuration.configuration.isInheritIO(),
-                command)
+                command,
+                emptyMap())
                 .run();
     }
 

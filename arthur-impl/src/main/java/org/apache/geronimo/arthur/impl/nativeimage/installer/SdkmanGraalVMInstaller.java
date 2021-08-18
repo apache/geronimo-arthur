@@ -17,6 +17,7 @@
 package org.apache.geronimo.arthur.impl.nativeimage.installer;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 
@@ -80,7 +81,9 @@ public class SdkmanGraalVMInstaller {
         try {
             if (findNativeImage(bin).count() == 0) { // likely only UNIx, windows comes with native-image.cmd
                 log.info("Installing native-image");
-                new ProcessExecutor(configuration.isInheritIO(), asList(findGu(bin).toAbsolutePath().toString(), "install", "native-image")).run();
+                new ProcessExecutor(
+                        configuration.isInheritIO(), asList(findGu(bin).toAbsolutePath().toString(), "install", "native-image"),
+                        singletonMap("GRAALVM_HOME", home.toString())).run();
             } else {
                 log.debug("native-image is already available");
             }
