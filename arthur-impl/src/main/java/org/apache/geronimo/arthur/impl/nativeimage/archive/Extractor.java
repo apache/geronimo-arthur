@@ -16,14 +16,14 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.archive;
 
-import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
-import static java.nio.file.attribute.PosixFilePermission.GROUP_READ;
-import static java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE;
-import static java.nio.file.attribute.PosixFilePermission.OTHERS_READ;
-import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
-import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
-import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
-import static java.util.stream.Collectors.toSet;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -40,15 +40,14 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-
-import lombok.extern.slf4j.Slf4j;
+import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.GROUP_READ;
+import static java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OTHERS_READ;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
+import static java.util.stream.Collectors.toSet;
 
 @Slf4j
 public class Extractor {
@@ -137,7 +136,12 @@ public class Extractor {
     }
 
     private void setExecutableIfNeeded(final Path target) throws IOException {
-        if (target.getParent().getFileName().toString().equals("bin") && !Files.isExecutable(target)) {
+        final String parentFilename = target.getParent().getFileName().toString();
+        final String filename = target.getFileName().toString();
+        if ((parentFilename.equals("bin") && !Files.isExecutable(target)) ||
+                (parentFilename.equals("lib") && (
+                        filename.contains("exec") || filename.startsWith("j") ||
+                                (filename.startsWith("lib") && filename.contains(".so"))))) {
             Files.setPosixFilePermissions(
                     target,
                     Stream.of(
