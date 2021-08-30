@@ -37,6 +37,7 @@
     <!-- main deps -->
     <slf4j.version>1.7.28</slf4j.version>
     <ziplock.version>8.0.0</ziplock.version>
+    <common-compress.version>1.21</common-compress.version>
 
     <!-- knights -->
     <jsch.version>0.1.55</jsch.version>
@@ -114,7 +115,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
-        <version>1.20</version>
+        <version>${common-compress.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.xbean</groupId>
