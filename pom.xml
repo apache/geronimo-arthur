@@ -26,7 +26,7 @@
 
   <groupId>org.apache.geronimo.arthur</groupId>
   <artifactId>arthur</artifactId>
-  <version>1.0.3</version>
+  <version>1.0.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Arthur</name>
   <description>Apache Geronimo GraalVM tooling</description>
@@ -292,6 +292,6 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/geronimo-arthur.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/geronimo-arthur.git</developerConnection>
     <url>https://gitbox.apache.org/repos/asf/geronimo-arthur.git</url>
-    <tag>arthur-1.0.3</tag>
+    <tag>HEAD</tag>
   </scm>
 </project>
