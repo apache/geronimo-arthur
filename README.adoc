@@ -16,6 +16,7 @@ limitations under the License.
 ////
 = Apache Geronimo Arthur
 
+image:https://img.shields.io/maven-central/v/org.apache.geronimo.arthur/arthur.svg[Maven Central]
 image:https://github.com/apache/geronimo-arthur/workflows/Github%20CI/badge.svg[Github Action Status]
 
 A thin layer on top of Orace GraalVM to build native binaries from your Java softwares.
