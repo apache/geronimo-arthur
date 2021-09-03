@@ -18,9 +18,11 @@
  */
 package org.apache.geronimo.arthur.documentation.download;
 
-import static java.util.Arrays.asList;
-import static java.util.Optional.ofNullable;
+import org.xml.sax.Attributes;
+import org.xml.sax.helpers.DefaultHandler;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -35,11 +37,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-
-import org.xml.sax.Attributes;
-import org.xml.sax.helpers.DefaultHandler;
+import static java.util.Arrays.asList;
+import static java.util.Optional.ofNullable;
 
 // helper to generate the download table content
 public class Downloads {
@@ -48,7 +47,7 @@ public class Downloads {
 
     private static final String DIST_RELEASE = "https://dist.apache.org/repos/dist/release/geronimo/arthur/";
     private static final String ARCHIVE_RELEASE = "https://archive.apache.org/dist/geronimo/arthur/";
-    private static final String MIRROR_RELEASE = "http://www.apache.org/dyn/closer.lua/geronimo/arthur/";
+    private static final String MIRROR_RELEASE = "https://www.apache.org/dyn/closer.lua/geronimo/arthur/";
 
     private static final long MEGA_RATIO = 1024 * 1024;
     private static final long KILO_RATIO = 1024;
