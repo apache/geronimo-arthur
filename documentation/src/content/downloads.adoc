@@ -21,7 +21,11 @@ License under Apache License v2 (ALv2).
 [.table.table-bordered,options="header"]
 |===
 |Name|Version|Date|Size|Type|Links
-|Arthur Source Release|1.0.3|2021-08-30 15:08:48|573 kB|zip| https://dist.apache.org/repos/dist/release/geronimo/arthur/arthur-1.0.3-source-release.zip[icon:download[] zip] https://dist.apache.org/repos/dist/release/geronimo/arthur/arthur-1.0.3-source-release.zip.sha512[icon:download[] sha512] https://dist.apache.org/repos/dist/release/geronimo/arthur/arthur-1.0.3-source-release.zip.asc[icon:download[] asc]
+|Arthur Source Release|1.0.3|2021-08-30 15:08:48|573 kB|zip| https://downloads.apache.org/geronimo/arthur/arthur-1.0.3-source-release.zip[icon:download[] zip] https://downloads.apache.org/geronimo/arthur/arthur-1.0.3-source-release.zip.sha512[icon:download[] sha512] https://downloads.apache.org/geronimo/arthur/arthur-1.0.3-source-release.zip.asc[icon:download[] asc]
 |Arthur Source Release|1.0.2|2021-02-11 11:12:23|539 kB|zip| https://archive.apache.org/dist/geronimo/arthur/arthur-1.0.2-source-release.zip[icon:download[] zip] https://archive.apache.org/dist/geronimo/arthur/arthur-1.0.2-source-release.zip.sha512[icon:download[] sha512] https://archive.apache.org/dist/geronimo/arthur/arthur-1.0.2-source-release.zip.asc[icon:download[] asc]
 |Arthur Source Release|1.0.0|2019-12-05 08:44:02|502 kB|zip| https://archive.apache.org/dist/geronimo/arthur/arthur-1.0.0-source-release.zip[icon:download[] zip] https://archive.apache.org/dist/geronimo/arthur/arthur-1.0.0-source-release.zip.sha512[icon:download[] sha512] https://archive.apache.org/dist/geronimo/arthur/arthur-1.0.0-source-release.zip.asc[icon:download[] asc]
 |===
+
+== Code Signatures
+
+You may https://infra.apache.org/release-signing.html#verifying-signature[verify the authenticity] of all artifacts below by using the PGP https://downloads.apache.org/geronimo/KEYS[KEYS] file.
