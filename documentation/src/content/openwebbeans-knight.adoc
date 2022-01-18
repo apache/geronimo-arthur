@@ -118,6 +118,11 @@ a|`extension.openwebbeans.extension.excludes`|String list|Extension fully qualif
 a|`extension.openwebbeans.runtime.properties.skipOptimizations`|boolean|By default the knight will enable some optimization properties like skipping validation and `@Vetoed` on packages. If undesired set it to `true`.
 |===
 
+== Jakarta
+
+If you are using CDI under jakarta namespace, OpenWebBeans jakarta is supported through a shade.
+You must define as extensions or dependencies the openwebbeans Jakarta stack (`openwebbeans-se-bom` artifact can help) with the `openwebbeans-knight` with `jakarta` classifier.
+
 ---
 
 Previous: link:knights.html[Knights]

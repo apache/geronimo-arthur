@@ -194,7 +194,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
                         context.register(model);
                     });
             customAnnotations.stream() // DefaultAnnotation.of
-                    .filter(it -> !it.getName().startsWith("javax."))
+                    .filter(it -> !it.getName().startsWith("javax.") && !it.getName().startsWith("jakarta."))
                     .map(Class::getName)
                     .sorted()
                     .map(it -> {
