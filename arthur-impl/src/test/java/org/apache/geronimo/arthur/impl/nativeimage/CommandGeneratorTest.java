@@ -109,7 +109,7 @@ class CommandGeneratorTest {
                                 "-H:MaxRuntimeCompileMethods=1000", "-H:+EnforceMaxRuntimeCompileMethods",
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
                                 "--no-fallback", "--static", "--allow-incomplete-classpath",
-                                "--report-unsupported-elements-at-runtime", "--enable-all-security-services",
+                                "--report-unsupported-elements-at-runtime",
                                 "main", "main.graal.exec")),
                 new Case(
                         classpathConfig,
@@ -118,7 +118,7 @@ class CommandGeneratorTest {
                                 "-H:MaxRuntimeCompileMethods=1000", "-H:+EnforceMaxRuntimeCompileMethods",
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
                                 "--no-fallback", "--static", "--allow-incomplete-classpath",
-                                "--report-unsupported-elements-at-runtime", "--enable-all-security-services",
+                                "--report-unsupported-elements-at-runtime",
                                 "main", "main.graal.exec")),
                 new Case(
                         filledConfig,

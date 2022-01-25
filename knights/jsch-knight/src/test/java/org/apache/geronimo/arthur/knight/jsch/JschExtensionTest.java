@@ -37,7 +37,7 @@ class JschExtensionTest {
         final DefautContext context = new DefautContext(configuration, null, null, null, null, null);
         new JschExtension().execute(context);
 
-        assertTrue(configuration.isEnableAllSecurityServices());
+        assertTrue(configuration.getEnableAllSecurityServices());
 
         assertEquals(
                 asList("com.jcraft.jsch.JSch", "com.jcraft.jsch.JSch$1"),

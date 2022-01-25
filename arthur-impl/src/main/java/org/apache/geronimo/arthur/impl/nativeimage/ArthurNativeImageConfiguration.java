@@ -83,10 +83,10 @@ public class ArthurNativeImageConfiguration {
     private boolean reportUnsupportedElementsAtRuntime = true;
 
     @GraalCommandPart(order = 19, template = "--enable-all-security-services")
-    private boolean enableAllSecurityServices = true;
+    private Boolean enableAllSecurityServices = null;
 
     @GraalCommandPart(order = 20, template = "--no-server")
-    private boolean noServer = false;
+    private Boolean noServer = null;
 
     @GraalCommandPart(order = 21)
     private String main;
