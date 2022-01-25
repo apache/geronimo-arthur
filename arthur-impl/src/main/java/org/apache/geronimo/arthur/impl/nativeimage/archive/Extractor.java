@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
@@ -91,8 +92,8 @@ public class Extractor {
                     } else {
                         ensureExists(target.getParent());
                         if (isLink.test(entry)) {
-                            final Path targetLinked = target.getParent().resolve(linkPath.apply(archiveInputStream, entry));
-                            if (Files.exists(targetLinked)) {
+                            final Path targetLinked = Paths.get(linkPath.apply(archiveInputStream, entry));
+                            if (Files.exists(target.getParent().resolve(targetLinked))) {
                                 try {
                                     Files.createSymbolicLink(target, targetLinked);
                                     setExecutableIfNeeded(target);
@@ -119,12 +120,13 @@ public class Extractor {
                 }
             });
             linksToCopy.forEach((target, targetLinked) -> {
-                if (!Files.exists(targetLinked)) {
+                final Path actualTarget = target.getParent().resolve(targetLinked);
+                if (!Files.exists(actualTarget)) {
                     log.warn("No file '" + targetLinked + "' found, skipping link");
                     return;
                 }
                 try {
-                    Files.copy(targetLinked, target, StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(actualTarget, target, StandardCopyOption.REPLACE_EXISTING);
                     setExecutableIfNeeded(target);
                 } catch (final IOException e) {
                     throw new IllegalStateException(e);
