@@ -574,7 +574,7 @@ public class NativeImageMojo extends ArthurMojo {
                 .map(e -> e.stream()
                         .map(this::prepareExtension)
                         .flatMap(art -> art.endsWith("?transitive=false") ?
-                                Stream.of(toArtifact(art)) :
+                                Stream.of(toArtifact(art.substring(0, art.length() - "?transitive=false".length()))) :
                                 resolveTransitiveDependencies(toArtifact(art)))
                         .map(it -> new AbstractMap.SimpleImmutableEntry<>(
                                 toMavenArtifact(it),
