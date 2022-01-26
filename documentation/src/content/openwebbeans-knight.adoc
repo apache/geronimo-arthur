@@ -112,6 +112,7 @@ a|`extension.openwebbeans.classes.filter.[includes\|excludes]`|String|Comma sepa
 a|`extension.openwebbeans.classes.includeAsResources`|boolean|Should classes be included as resources (.class) too.
 a|`extension.openwebbeans.container.se.disableDiscovery`|boolean|Should CDI SE container auto discover the beans or not.
 a|`extension.openwebbeans.container.se.properties`|Properties|CDI SE properties.
+a|`extension.openwebbeans.container.se.properties.runtime.excludes`|Properties|properties names to not keep in openwebbeans.properties at runtime (but use at build time if set in previous option).
 a|`extension.openwebbeans.container.se.services`|Properties|OpenWebBeans services as properties (SPI=IMPL).
 a|`extension.openwebbeans.container.se.classes`|String list|Bean classes to register.
 a|`extension.openwebbeans.extension.excludes`|String list|Extension fully qualified name prefixes to exclude undesired extensions.

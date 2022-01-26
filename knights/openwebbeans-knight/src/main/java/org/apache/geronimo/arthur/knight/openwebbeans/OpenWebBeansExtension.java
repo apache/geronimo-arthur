@@ -100,12 +100,14 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static org.apache.geronimo.arthur.spi.ArthurExtension.PredicateType.EQUALS;
 
 @Slf4j
 public class OpenWebBeansExtension implements ArthurExtension {
@@ -140,10 +142,10 @@ public class OpenWebBeansExtension implements ArthurExtension {
             // 4. register CDI/OWB API which require some reflection
             // 4.1 SPI (interface)
             Stream.of(
-                    ScannerService.class, LoaderService.class, BeanArchiveService.class, SecurityService.class,
-                    ContainerLifecycle.class, JNDIService.class, ApplicationBoundaryService.class, ContextsService.class,
-                    InjectionPointService.class, ResourceInjectionService.class, DefiningClassService.class,
-                    Filter.class)
+                            ScannerService.class, LoaderService.class, BeanArchiveService.class, SecurityService.class,
+                            ContainerLifecycle.class, JNDIService.class, ApplicationBoundaryService.class, ContextsService.class,
+                            InjectionPointService.class, ResourceInjectionService.class, DefiningClassService.class,
+                            Filter.class)
                     .forEach(clazz -> {
                         final ClassReflectionModel model = new ClassReflectionModel();
                         model.setName(clazz.getName());
@@ -152,12 +154,12 @@ public class OpenWebBeansExtension implements ArthurExtension {
                     });
             // 4.2 classes which must be instantiable
             Stream.concat(Stream.of(
-                    ClassLoaderProxyService.LoadOnly.class, StandaloneLifeCycle.class, StandaloneContextsService.class,
-                    DefaultLoaderService.class, InjectionPointImpl.class, ConversationImpl.class, SimpleApplicationBoundaryService.class,
-                    ApplicationScopedBeanInterceptorHandler.class, RequestScopedBeanInterceptorHandler.class,
-                    SessionScopedBeanInterceptorHandler.class, NormalScopedBeanInterceptorHandler.class,
-                    CDISeScannerService.class, PreScannedCDISeScannerService.class, DefaultScannerService.class),
-                    findServices(properties))
+                                    ClassLoaderProxyService.LoadOnly.class, StandaloneLifeCycle.class, StandaloneContextsService.class,
+                                    DefaultLoaderService.class, InjectionPointImpl.class, ConversationImpl.class, SimpleApplicationBoundaryService.class,
+                                    ApplicationScopedBeanInterceptorHandler.class, RequestScopedBeanInterceptorHandler.class,
+                                    SessionScopedBeanInterceptorHandler.class, NormalScopedBeanInterceptorHandler.class,
+                                    CDISeScannerService.class, PreScannedCDISeScannerService.class, DefaultScannerService.class),
+                            findServices(properties))
                     .distinct()
                     .forEach(clazz -> {
                         final ClassReflectionModel model = new ClassReflectionModel();
@@ -175,15 +177,15 @@ public class OpenWebBeansExtension implements ArthurExtension {
             context.register(owbFinder);
             // 5 annotations
             final Collection<Class<?>> customAnnotations = Stream.concat(
-                    context.findAnnotatedClasses(Qualifier.class).stream(),
-                    context.findAnnotatedClasses(NormalScope.class).stream())
+                            context.findAnnotatedClasses(Qualifier.class).stream(),
+                            context.findAnnotatedClasses(NormalScope.class).stream())
                     .collect(toList());
             Stream.concat(Stream.concat(Stream.of(
-                    Initialized.class, Destroyed.class, NormalScope.class, ApplicationScoped.class, Default.class,
-                    Dependent.class, ConversationScoped.class, RequestScoped.class, Observes.class, ObservesAsync.class,
-                    Qualifier.class, InterceptorBinding.class),
-                    beanManager.getAdditionalQualifiers().stream()),
-                    customAnnotations.stream())
+                                            Initialized.class, Destroyed.class, NormalScope.class, ApplicationScoped.class, Default.class,
+                                            Dependent.class, ConversationScoped.class, RequestScoped.class, Observes.class, ObservesAsync.class,
+                                            Qualifier.class, InterceptorBinding.class),
+                                    beanManager.getAdditionalQualifiers().stream()),
+                            customAnnotations.stream())
                     .distinct()
                     .map(Class::getName)
                     .sorted()
@@ -413,7 +415,9 @@ public class OpenWebBeansExtension implements ArthurExtension {
                 properties.putIfAbsent("org.apache.webbeans.spi.deployer.skipVetoedOnPackages", "true");
             }
 
-            properties.remove("configuration.ordinal"); // no more needed since it will be unique
+            final Predicate<String> droppedProperties = context.createPredicate("extension.openwebbeans.container.se.properties.runtime.excludes", EQUALS)
+                    .orElseGet(() -> asList("configuration.ordinal", "org.apache.webbeans.lifecycle.standalone.fireApplicationScopeEvents")::contains);
+            properties.stringPropertyNames().stream().filter(droppedProperties).forEach(properties::remove);
             final StringWriter writer = new StringWriter();
             try (final StringWriter w = writer) {
                 properties.store(w, "Generated by Geronimo Arthur");
