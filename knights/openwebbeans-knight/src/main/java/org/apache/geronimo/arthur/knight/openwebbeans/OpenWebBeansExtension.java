@@ -24,7 +24,6 @@ import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.openwebbeans.se.CDISeScannerService;
 import org.apache.openwebbeans.se.PreScannedCDISeScannerService;
 import org.apache.webbeans.component.AbstractProducerBean;
-import org.apache.webbeans.component.CdiInterceptorBean;
 import org.apache.webbeans.component.InjectionTargetBean;
 import org.apache.webbeans.component.ManagedBean;
 import org.apache.webbeans.config.OpenWebBeansConfiguration;
@@ -79,8 +78,8 @@ import javax.enterprise.inject.se.SeContainer;
 import javax.enterprise.inject.se.SeContainerInitializer;
 import javax.enterprise.inject.spi.AnnotatedField;
 import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.Interceptor;
 import javax.inject.Qualifier;
-import javax.interceptor.Interceptor;
 import javax.interceptor.InterceptorBinding;
 import java.io.IOException;
 import java.io.StringReader;
@@ -122,6 +121,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
             final WebBeansContext webBeansContext = WebBeansContext.currentInstance();
             final BeanManagerImpl beanManager = webBeansContext.getBeanManagerImpl();
             final Set<Bean<?>> beans = beanManager.getBeans();
+            final Collection<javax.enterprise.inject.spi.Interceptor<?>> interceptors = webBeansContext.getInterceptorsManager().getCdiInterceptors();
             final Predicate<String> classFilter = context.createIncludesExcludes(
                     "extension.openwebbeans.classes.filter.", PredicateType.STARTS_WITH);
 
@@ -129,7 +129,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
             dumpProxies(context, webBeansContext, beans, classFilter);
 
             // 2. register all classes which will require reflection + proxies
-            final String beanClassesList = registerBeansForReflection(context, beans, classFilter);
+            final String beanClassesList = registerBeansForReflection(context, beans, classFilter, interceptors);
             getProxies(webBeansContext).keySet().stream().filter(classFilter).sorted().forEach(name -> {
                 final ClassReflectionModel model = new ClassReflectionModel();
                 model.setName(name);
@@ -276,15 +276,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
             typeVariableProxyModel.setClasses(singleton(TypeVariable.class.getName()));
             context.register(typeVariableProxyModel);
 
-            // 11. interceptors
-            context.findAnnotatedClasses(Interceptor.class).forEach(clazz -> {
-                final ClassReflectionModel model = new ClassReflectionModel();
-                model.setName(clazz.getName());
-                model.setAllDeclaredConstructors(true);
-                model.setAllDeclaredFields(true);
-                model.setAllDeclaredMethods(true); // not sure it is that used but can be an injection point, todo: filter?
-                context.register(model);
-            });
+            // 11. interceptor bindings
             context.findAnnotatedClasses(InterceptorBinding.class).forEach(clazz -> {
                 final ClassReflectionModel model = new ClassReflectionModel();
                 model.setName(clazz.getName());
@@ -350,11 +342,12 @@ public class OpenWebBeansExtension implements ArthurExtension {
                 .filter(Objects::nonNull);
     }
 
-    private String registerBeansForReflection(final Context context, final Set<Bean<?>> beans, final Predicate<String> classFilter) {
+    private String registerBeansForReflection(final Context context, final Set<Bean<?>> beans, final Predicate<String> classFilter,
+                                              final Collection<javax.enterprise.inject.spi.Interceptor<?>> interceptors) {
         final boolean includeClassResources = Boolean.parseBoolean(context.getProperty("extension.openwebbeans.classes.includeAsResources"));
-        return beans.stream()
-                .filter(it -> ManagedBean.class.isInstance(it) || CdiInterceptorBean.class.isInstance(it))
-                .map(Bean::getBeanClass)
+        return Stream.concat(
+                        beans.stream().filter(ManagedBean.class::isInstance).map(Bean::getBeanClass),
+                        interceptors.stream().map(Interceptor::getBeanClass))
                 .flatMap(this::hierarchy)
                 .distinct()
                 .map(Class::getName)
