@@ -24,6 +24,7 @@ import org.apache.geronimo.arthur.spi.model.ResourceModel;
 import org.apache.openwebbeans.se.CDISeScannerService;
 import org.apache.openwebbeans.se.PreScannedCDISeScannerService;
 import org.apache.webbeans.component.AbstractProducerBean;
+import org.apache.webbeans.component.CdiInterceptorBean;
 import org.apache.webbeans.component.InjectionTargetBean;
 import org.apache.webbeans.component.ManagedBean;
 import org.apache.webbeans.config.OpenWebBeansConfiguration;
@@ -352,7 +353,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
     private String registerBeansForReflection(final Context context, final Set<Bean<?>> beans, final Predicate<String> classFilter) {
         final boolean includeClassResources = Boolean.parseBoolean(context.getProperty("extension.openwebbeans.classes.includeAsResources"));
         return beans.stream()
-                .filter(ManagedBean.class::isInstance)
+                .filter(it -> ManagedBean.class.isInstance(it) || CdiInterceptorBean.class.isInstance(it))
                 .map(Bean::getBeanClass)
                 .flatMap(this::hierarchy)
                 .distinct()
