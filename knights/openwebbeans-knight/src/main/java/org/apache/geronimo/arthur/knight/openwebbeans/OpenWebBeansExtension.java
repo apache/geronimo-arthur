@@ -79,6 +79,7 @@ import javax.enterprise.inject.se.SeContainerInitializer;
 import javax.enterprise.inject.spi.AnnotatedField;
 import javax.enterprise.inject.spi.Bean;
 import javax.inject.Qualifier;
+import javax.interceptor.Interceptor;
 import javax.interceptor.InterceptorBinding;
 import java.io.IOException;
 import java.io.StringReader;
@@ -273,6 +274,22 @@ public class OpenWebBeansExtension implements ArthurExtension {
             final DynamicProxyModel typeVariableProxyModel = new DynamicProxyModel();
             typeVariableProxyModel.setClasses(singleton(TypeVariable.class.getName()));
             context.register(typeVariableProxyModel);
+
+            // 11. interceptors
+            context.findAnnotatedClasses(Interceptor.class).forEach(clazz -> {
+                final ClassReflectionModel model = new ClassReflectionModel();
+                model.setName(clazz.getName());
+                model.setAllDeclaredConstructors(true);
+                model.setAllDeclaredFields(true);
+                model.setAllDeclaredMethods(true); // not sure it is that used but can be an injection point, todo: filter?
+                context.register(model);
+            });
+            context.findAnnotatedClasses(InterceptorBinding.class).forEach(clazz -> {
+                final ClassReflectionModel model = new ClassReflectionModel();
+                model.setName(clazz.getName());
+                model.setAllPublicMethods(true);
+                context.register(model);
+            });
         } finally {
             System.setProperties(original);
         }
