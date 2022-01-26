@@ -61,6 +61,7 @@ import org.apache.webbeans.spi.SecurityService;
 import org.apache.xbean.finder.AnnotationFinder;
 import org.apache.xbean.finder.filter.Filter;
 
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.ConversationScoped;
 import javax.enterprise.context.Dependent;
@@ -183,7 +184,7 @@ public class OpenWebBeansExtension implements ArthurExtension {
             Stream.concat(Stream.concat(Stream.of(
                                             Initialized.class, Destroyed.class, NormalScope.class, ApplicationScoped.class, Default.class,
                                             Dependent.class, ConversationScoped.class, RequestScoped.class, Observes.class, ObservesAsync.class,
-                                            Qualifier.class, InterceptorBinding.class),
+                                            Qualifier.class, InterceptorBinding.class, Priority.class),
                                     beanManager.getAdditionalQualifiers().stream()),
                             customAnnotations.stream())
                     .distinct()

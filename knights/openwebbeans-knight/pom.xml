@@ -111,6 +111,10 @@
                   <pattern>javax.enterprise</pattern>
                   <shadedPattern>jakarta.enterprise</shadedPattern>
                 </relocation>
+                <relocation>
+                  <pattern>javax.annotation</pattern>
+                  <shadedPattern>jakarta.annotation</shadedPattern>
+                </relocation>
               </relocations>
             </configuration>
           </execution>
