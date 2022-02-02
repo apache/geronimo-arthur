@@ -420,7 +420,9 @@ public class OpenWebBeansExtension implements ArthurExtension {
             if (!Boolean.parseBoolean(context.getProperty("extension.openwebbeans.services.ignoreScannerService"))) {
                 properties.put("org.apache.webbeans.spi.ScannerService", "org.apache.openwebbeans.se.PreScannedCDISeScannerService");
             }
-            properties.putIfAbsent("org.apache.openwebbeans.se.PreScannedCDISeScannerService.classes", beanClassesList);
+            properties.putIfAbsent("org.apache.openwebbeans.se.PreScannedCDISeScannerService.classes",
+                    properties.getProperty("org.apache.openwebbeans.se.PreScannedCDISeScannerService.classesTemplate", "${classes}")
+                            .replace("${classes}", beanClassesList));
 
             if (!Boolean.parseBoolean(properties.getProperty("extension.openwebbeans.runtime.properties.skipOptimizations"))) {
                 properties.putIfAbsent("org.apache.webbeans.spi.deployer.skipValidations", "true");

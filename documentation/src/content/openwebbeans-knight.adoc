@@ -117,6 +117,7 @@ a|`extension.openwebbeans.container.se.services`|Properties|OpenWebBeans service
 a|`extension.openwebbeans.container.se.classes`|String list|Bean classes to register.
 a|`extension.openwebbeans.extension.excludes`|String list|Extension fully qualified name prefixes to exclude undesired extensions.
 a|`extension.openwebbeans.runtime.properties.skipOptimizations`|boolean|By default the knight will enable some optimization properties like skipping validation and `@Vetoed` on packages. If undesired set it to `true`.
+a|`org.apache.openwebbeans.se.PreScannedCDISeScannerService.classesTemplate`|String|By default `${classes}` which is evaluated to the list of scanned classes. This placeholder can be used to force some other classes in the final template (`${classes},org.foo.MyClass`).
 |===
 
 == Jakarta
