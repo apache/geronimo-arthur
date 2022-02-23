@@ -86,7 +86,7 @@ public class Downloads {
                 "|" + dateFormatter.format(d.date) +
                 "|" + d.size +
                 "|" + d.format +
-                "| " + d.url.replace(ASF_RELEASE_BASE, MVN_BASE) + "[icon:download[] " + d.format + "] " +
+                "|" + d.url.replace(ASF_RELEASE_BASE, MVN_BASE) + "[icon:download[] " + d.format + "] " +
                 (d.sha512 != null ? d.sha512 + "[icon:download[] sha512] " : d.sha1 + "[icon:download[] sha1] ") +
                 d.asc + "[icon:download[] asc]";
     }
@@ -100,6 +100,26 @@ public class Downloads {
             if (o1.version.startsWith(o2.version) && o1.version.contains("-M")) { // milestone
                 return 1;
             }
+
+            final String[] v1 = o1.version.split("\\.");
+            final String[] v2 = o2.version.split("\\.");
+            for (int i = 0; i < Math.max(v1.length, v2.length); i++) {
+                if (v1.length == i) {
+                    return 1;
+                }
+                if (v2.length == i) {
+                    return -1;
+                }
+                try {
+                    final int diff = Integer.parseInt(v2[i]) - Integer.parseInt(v1[i]);
+                    if (diff != 0) {
+                        return diff;
+                    }
+                } catch (final NumberFormatException nfe) {
+                    break; // use plain string comparison
+                }
+            }
+
             return versionComp;
         }
 
