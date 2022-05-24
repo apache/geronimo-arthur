@@ -130,14 +130,25 @@ public class OpenWebBeansExtension implements ArthurExtension {
 
             // 2. register all classes which will require reflection + proxies
             final String beanClassesList = registerBeansForReflection(context, beans, classFilter, interceptors);
-            getProxies(webBeansContext).keySet().stream().filter(classFilter).sorted().forEach(name -> {
-                final ClassReflectionModel model = new ClassReflectionModel();
-                model.setName(name);
-                model.setAllDeclaredConstructors(true);
-                model.setAllDeclaredFields(true);
-                model.setAllDeclaredMethods(true);
-                context.register(model);
-            });
+            getProxies(webBeansContext).keySet().stream()
+                    .filter(classFilter)
+                    .flatMap(it -> {
+                        try {
+                            return hierarchy(context.loadClass(it))
+                                    .map(Class::getName);
+                        } catch (final RuntimeException re) {
+                            return Stream.of(it);
+                        }
+                    })
+                    .sorted()
+                    .forEach(name -> {
+                        final ClassReflectionModel model = new ClassReflectionModel();
+                        model.setName(name);
+                        model.setAllDeclaredConstructors(true);
+                        model.setAllDeclaredFields(true);
+                        model.setAllDeclaredMethods(true);
+                        context.register(model);
+                    });
 
             // 3. dump owb properties for runtime
             final Properties properties = initProperties(context, webBeansContext.getOpenWebBeansConfiguration(), beanClassesList);
