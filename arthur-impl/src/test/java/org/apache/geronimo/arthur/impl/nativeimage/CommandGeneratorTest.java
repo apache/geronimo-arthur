@@ -108,7 +108,7 @@ class CommandGeneratorTest {
                                 "native-image", "-classpath",
                                 "-H:MaxRuntimeCompileMethods=1000", "-H:+EnforceMaxRuntimeCompileMethods",
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
-                                "--no-fallback", "--static", "--allow-incomplete-classpath",
+                                "--no-fallback", "--static",
                                 "--report-unsupported-elements-at-runtime",
                                 "main", "main.graal.exec")),
                 new Case(
@@ -117,7 +117,7 @@ class CommandGeneratorTest {
                                 "native-image", "-classpath", "foo" + File.pathSeparator + "bar",
                                 "-H:MaxRuntimeCompileMethods=1000", "-H:+EnforceMaxRuntimeCompileMethods",
                                 "-H:+AddAllCharsets", "-H:+ReportExceptionStackTraces",
-                                "--no-fallback", "--static", "--allow-incomplete-classpath",
+                                "--no-fallback", "--static",
                                 "--report-unsupported-elements-at-runtime",
                                 "main", "main.graal.exec")),
                 new Case(

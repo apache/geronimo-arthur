@@ -77,7 +77,7 @@ public class ArthurNativeImageConfiguration {
     private boolean buildStaticImage = true;
 
     @GraalCommandPart(order = 17, template = "--allow-incomplete-classpath")
-    private boolean allowIncompleteClasspath = true;
+    private Boolean allowIncompleteClasspath; // recent version make it a default
 
     @GraalCommandPart(order = 18, template = "--report-unsupported-elements-at-runtime")
     private boolean reportUnsupportedElementsAtRuntime = true;
@@ -95,6 +95,20 @@ public class ArthurNativeImageConfiguration {
     private String output;
 
     private boolean inheritIO = true;
+
+    /**
+     * @param graalVersion the graalvm version used to complete this configuration, in particular allowIncompleteClasspath and enableAllSecurityServices.
+     */
+    public void complete(final String graalVersion) {
+        if (graalVersion != null && (graalVersion.startsWith("21.") || graalVersion.startsWith("20."))) {
+            if (allowIncompleteClasspath == null) {
+                allowIncompleteClasspath = true;
+            }
+            if (enableAllSecurityServices == null) {
+                enableAllSecurityServices = true;
+            }
+        }
+    }
 
     public enum FallbackMode {
         no, auto, force

@@ -79,6 +79,7 @@ import java.util.stream.StreamSupport;
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static java.util.Comparator.comparing;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static lombok.AccessLevel.PROTECTED;
@@ -189,8 +190,8 @@ public class NativeImageMojo extends ArthurMojo {
     /**
      * Should incomplete classpath be tolerated.
      */
-    @Parameter(property = "arthur.allowIncompleteClasspath", defaultValue = "true")
-    private boolean allowIncompleteClasspath;
+    @Parameter(property = "arthur.allowIncompleteClasspath")
+    private Boolean allowIncompleteClasspath;
 
     /**
      * Should unsupported element be reported at runtime or not. It is not a recommended option but it is often needed.
@@ -201,8 +202,8 @@ public class NativeImageMojo extends ArthurMojo {
     /**
      * Should security services be included.
      */
-    @Parameter(property = "arthur.enableAllSecurityServices", defaultValue = "true")
-    private boolean enableAllSecurityServices;
+    @Parameter(property = "arthur.enableAllSecurityServices")
+    private Boolean enableAllSecurityServices;
 
     /**
      * Which main to compile.
@@ -389,6 +390,8 @@ public class NativeImageMojo extends ArthurMojo {
         final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
         final ArthurNativeImageConfiguration configuration = getConfiguration(classpathEntries.values());
+        configuration.complete(graalVersion);
+
         if (nativeImage == null) {
             final SdkmanGraalVMInstaller graalInstaller = createInstaller();
             final Path graalHome = graalInstaller.install();
@@ -408,6 +411,9 @@ public class NativeImageMojo extends ArthurMojo {
         final ClassLoader parentLoader = useTcclAsScanningParentClassLoader ?
                 thread.getContextClassLoader() : getSystemClassLoader();
         final ClassLoader oldLoader = thread.getContextClassLoader();
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Classpath:\n" + Stream.of(urls).map(URL::toExternalForm).collect(joining("\n")));
+        }
         try (final URLClassLoader loader = new URLClassLoader(urls, parentLoader) {
             @Override
             protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
