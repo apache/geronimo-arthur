@@ -21,12 +21,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClassReflectionModel {
     private String name;
+    private Condition condition; // >= GraalVM 22.2
     private Boolean allDeclaredConstructors;
     private Boolean allPublicConstructors;
     private Boolean allDeclaredMethods;
@@ -35,23 +40,38 @@ public class ClassReflectionModel {
     private Boolean allPublicClasses;
     private Boolean allDeclaredFields;
     private Boolean allPublicFields;
+    private Boolean queryAllDeclaredMethods;
+    private Boolean queryAllDeclaredConstructors;
+    private Boolean queryAllPublicMethods;
+    private Boolean queryAllPublicConstructors;
+    private Boolean unsafeAllocated;
     private Collection<FieldReflectionModel> fields;
     private Collection<MethodReflectionModel> methods;
+    private Collection<MethodReflectionModel> queriedMethods;
+
+    public ClassReflectionModel(final String name,
+                                final Boolean allDeclaredConstructors, final Boolean allPublicConstructors,
+                                final Boolean allDeclaredMethods, final Boolean allPublicMethods,
+                                final Boolean allDeclaredClasses, final Boolean allPublicClasses,
+                                final Boolean allDeclaredFields, final Boolean allPublicFields,
+                                final Collection<FieldReflectionModel> fields, final Collection<MethodReflectionModel> methods) {
+        this(name, null, allDeclaredConstructors, allPublicConstructors, allDeclaredMethods, allPublicMethods, allDeclaredClasses, allPublicClasses, allDeclaredFields, allPublicFields, null, null, null, null, null, fields, methods, null);
+    }
 
     public ClassReflectionModel allPublic(final String name) {
-        return new ClassReflectionModel(name, null, true, null, true, null, null, null, true, null, null);
+        return new ClassReflectionModel(name, null, null, true, null, true, null, null, null, true, null, null, null, null, null, null, null, null);
     }
 
     public ClassReflectionModel allPublicConstructors(final String name) {
-        return new ClassReflectionModel(name, null, true, null, null, null, null, null, null, null, null);
+        return new ClassReflectionModel(name, null, null, true, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public ClassReflectionModel allDeclaredConstructors(final String name) {
-        return new ClassReflectionModel(name, null, null, true, null, null, null, null, null, null, null);
+        return new ClassReflectionModel(name, null, null, null, true, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public ClassReflectionModel allDeclared(final String name) {
-        return new ClassReflectionModel(name, true, null, true, null, null, null, true, null, null, null);
+        return new ClassReflectionModel(name, null, true, null, true, null, null, null, true, null, null, null, null, null, null, null, null, null);
     }
 
     public void merge(final ClassReflectionModel other) {
@@ -79,6 +99,31 @@ public class ClassReflectionModel {
         if (other.getAllPublicClasses() != null && other.getAllPublicClasses()) {
             setAllPublicClasses(true);
         }
+        if (other.getQueryAllDeclaredMethods() != null && other.getQueryAllDeclaredMethods()) {
+            setQueryAllDeclaredMethods(true);
+        }
+        if (other.getQueryAllDeclaredConstructors() != null && other.getQueryAllDeclaredConstructors()) {
+            setQueryAllDeclaredConstructors(true);
+        }
+        if (other.getQueryAllPublicMethods() != null && other.getQueryAllPublicMethods()) {
+            setQueryAllPublicMethods(true);
+        }
+        if (other.getQueryAllPublicConstructors() != null && other.getQueryAllPublicConstructors()) {
+            setQueryAllPublicConstructors(true);
+        }
+        if (other.getUnsafeAllocated() != null && other.getUnsafeAllocated()) {
+            setUnsafeAllocated(true);
+        }
+        setFields(merge(other.getFields(), getFields()));
+        setMethods(merge(other.getMethods(), getMethods()));
+        setQueriedMethods(merge(other.getQueriedMethods(), getQueriedMethods()));
+    }
+
+    private <T> Collection<T> merge(final Collection<T> v1, final Collection<T> v2) {
+        if (v1 == null && v2 == null) {
+            return null;
+        }
+        return Stream.of(v1, v2).filter(Objects::nonNull).flatMap(Collection::stream).distinct().collect(toList());
     }
 
     @Data
@@ -101,5 +146,12 @@ public class ClassReflectionModel {
     public static class MethodReflectionModel {
         private String name;
         private Collection<Class<?>> parameterTypes;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Condition {
+        private String typeReachable;
     }
 }
