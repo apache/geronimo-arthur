@@ -474,7 +474,10 @@ public abstract class JibMojo extends ArthurMojo {
             nativeFolder = nativeFolder.getParent();
             try {
                 if (!Files.exists(nativeFolder) || !Files.list(nativeFolder).anyMatch(it -> it.getFileName().toString().endsWith(".so"))) {
-                    throw new IllegalArgumentException("No native folder '" + nativeFolder + "' found.");
+                    nativeFolder = home.resolve("lib");
+                    if (!Files.exists(nativeFolder)) { // java 17 and after
+                        throw new IllegalArgumentException("No native folder '" + nativeFolder + "' found.");
+                    }
                 }
             } catch (final IOException e) {
                 throw new IllegalStateException(e);
