@@ -49,6 +49,11 @@
       <artifactId>winegrower-build-common</artifactId>
       <version>${winegrower.version}</version>
     </dependency>
+    <dependency><!-- avoid CVE on commons-text:1.9 in dependency tree from winegrower-build-common -->
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.10.0</version>
+    </dependency>
 
     <dependency>
       <groupId>org.graalvm.nativeimage</groupId>
