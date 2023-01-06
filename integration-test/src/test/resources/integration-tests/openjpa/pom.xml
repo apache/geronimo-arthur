@@ -28,7 +28,7 @@
 
   <properties>
     <openjpa.version>3.1.2</openjpa.version>
-    <hsqldb.version>2.5.1</hsqldb.version>
+    <hsqldb.version>2.7.1</hsqldb.version>
   </properties>
 
   <modelVersion>4.0.0</modelVersion>
