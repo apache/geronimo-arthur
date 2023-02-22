@@ -173,9 +173,10 @@ public abstract class ArthurMojo extends AbstractMojo {
     }
 
     private String buildCacheGav(final String graalPlatform) {
-        if (!graalPlatform.toLowerCase(ROOT).startsWith("linux")) { // cygwin
+        if (graalPlatform.toLowerCase(ROOT).contains("win")) {
             return graalCacheGav + ":zip:" + graalPlatform + ':' + graalVersion;
         }
+        // linux, macos and others
         return graalCacheGav + ":tar.gz:" + graalPlatform + ':' + graalVersion;
     }
 
