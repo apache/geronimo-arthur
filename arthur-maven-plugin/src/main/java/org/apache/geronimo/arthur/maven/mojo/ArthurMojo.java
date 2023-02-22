@@ -211,6 +211,6 @@ public abstract class ArthurMojo extends AbstractMojo {
         return (System.getProperty("os.name", "linux") +
                 ofNullable(System.getProperty("sun.arch.data.model"))
                         .orElseGet(() -> System.getProperty("os.arch", "64").replace("amd", "")))
-                .toLowerCase(ROOT);
+                .toLowerCase(ROOT).replace(" ", "");
     }
 }
