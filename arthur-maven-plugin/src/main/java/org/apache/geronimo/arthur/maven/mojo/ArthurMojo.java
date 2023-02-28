@@ -195,9 +195,11 @@ public abstract class ArthurMojo extends AbstractMojo {
         final String graalJavaVersion = versionIncludesJavaVersion ?
                 versionSegments[versionSegments.length - 1].substring(1) :
                 System.getProperty("java.version", "1.8").startsWith("8") ? "8" : "11";
-        final String githubPlatform = graalPlatform.toLowerCase(ROOT).contains("win") ?
-                "windows-amd64" : (graalPlatform.toLowerCase(ROOT).contains("linux") ?
-                "linux-amd64" : "darwin-amd64");
+        final String githubPlatform = graalPlatform.toLowerCase(ROOT).contains("win")
+                                      ? "windows-amd64"
+                                      : (graalPlatform.toLowerCase(ROOT).contains("mac")
+                                                           ? "darwin-amd64"
+                                                           : "linux-amd64");
         return graalDownloadUrl
                 .replace("${graalSimpleVersion}", graalSimpleVersion)
                 .replace("${graalJavaVersion}", graalJavaVersion)
