@@ -173,9 +173,10 @@ public abstract class ArthurMojo extends AbstractMojo {
     }
 
     private String buildCacheGav(final String graalPlatform) {
-        if (!graalPlatform.toLowerCase(ROOT).startsWith("linux")) { // cygwin
+        if (graalPlatform.toLowerCase(ROOT).contains("win")) {
             return graalCacheGav + ":zip:" + graalPlatform + ':' + graalVersion;
         }
+        // linux, macos and others
         return graalCacheGav + ":tar.gz:" + graalPlatform + ':' + graalVersion;
     }
 
@@ -194,8 +195,11 @@ public abstract class ArthurMojo extends AbstractMojo {
         final String graalJavaVersion = versionIncludesJavaVersion ?
                 versionSegments[versionSegments.length - 1].substring(1) :
                 System.getProperty("java.version", "1.8").startsWith("8") ? "8" : "11";
-        final String githubPlatform = graalPlatform.contains("win") ?
-                "windows-amd64" : (graalPlatform.contains("linux") ? "linux-amd64" : "darwin-amd64");
+        final String githubPlatform = graalPlatform.toLowerCase(ROOT).contains("win")
+                                      ? "windows-amd64"
+                                      : (graalPlatform.toLowerCase(ROOT).contains("mac")
+                                                           ? "darwin-amd64"
+                                                           : "linux-amd64");
         return graalDownloadUrl
                 .replace("${graalSimpleVersion}", graalSimpleVersion)
                 .replace("${graalJavaVersion}", graalJavaVersion)
@@ -209,6 +213,6 @@ public abstract class ArthurMojo extends AbstractMojo {
         return (System.getProperty("os.name", "linux") +
                 ofNullable(System.getProperty("sun.arch.data.model"))
                         .orElseGet(() -> System.getProperty("os.arch", "64").replace("amd", "")))
-                .toLowerCase(ROOT);
+                .toLowerCase(ROOT).replace(" ", "");
     }
 }

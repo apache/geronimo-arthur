@@ -72,7 +72,12 @@ public class SdkmanGraalVMInstaller {
         if (!Files.isDirectory(exploded)) {
             configuration.getExtractor().accept(archive, exploded);
         }
-        return home = exploded;
+        home = exploded;
+        // if macos
+        if (Files.isDirectory(home.resolve("Contents/Home"))) {
+            home = home.resolve("Contents/Home");
+        }
+        return home;
     }
 
     public Path installNativeImage() {
