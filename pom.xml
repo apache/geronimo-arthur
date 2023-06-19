@@ -238,7 +238,7 @@
         <configuration>
           <scope>compile,runtime</scope>
           <!-- Exclude for jackson, guava and maven-plugin //todo need to be removed when CVE fixes are released -->
-          <excludeVulnerabilityIds>CWE-346,CVE-2021-26291,CWE-400,sonatype-2022-6438,sonatype-2020-0491,sonatype-2012-0126,sonatype-2020-0926</excludeVulnerabilityIds>
+          <excludeVulnerabilityIds>CVE-2023-35116,CWE-346,CVE-2021-26291,CWE-400,sonatype-2022-6438,sonatype-2020-0491,sonatype-2012-0126,sonatype-2020-0926</excludeVulnerabilityIds>
         </configuration>
       </plugin>
     </plugins>
