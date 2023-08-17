@@ -71,13 +71,13 @@ public abstract class ArthurMojo extends AbstractMojo {
     /**
      * In case Graal must be downloaded to get native-image, where to take it from.
      */
-    @Parameter(property = "arthur.graalDownloadUrl",
-            defaultValue = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${graalSimpleVersion}/graalvm-ce-java${graalJavaVersion}-${githubPlatform}-${graalSimpleVersion}.tar.gz")
+    @Parameter(property = "arthur.graalDownloadUrl", defaultValue = "auto")
     private String graalDownloadUrl;
 
     /**
      * In case Graal must be downloaded to get native-image, which version to download.
      * It contains the graal version and can be suffixed by the graal java version prefixed with "r" (as on sdkman).
+     * Alternatively, in more recent version you can use "$javaVersion-graalce" or "$javaVersion-graal-oracle" to use the appropriated mirror.
      */
     @Parameter(property = "arthur.graalVersion", defaultValue = "20.3.0.r8")
     protected String graalVersion;
@@ -192,18 +192,31 @@ public abstract class ArthurMojo extends AbstractMojo {
         final String graalSimpleVersion = versionIncludesJavaVersion ?
                 Stream.of(versionSegments).limit(versionSegments.length - 1).collect(joining(".")) :
                 graalVersion;
-        final String graalJavaVersion = versionIncludesJavaVersion ?
+        String graalJavaVersion = versionIncludesJavaVersion ?
                 versionSegments[versionSegments.length - 1].substring(1) :
                 System.getProperty("java.version", "1.8").startsWith("8") ? "8" : "11";
         final String githubPlatform = graalPlatform.toLowerCase(ROOT).contains("win")
-                                      ? "windows-amd64"
-                                      : (graalPlatform.toLowerCase(ROOT).contains("mac")
-                                                           ? "darwin-amd64"
-                                                           : "linux-amd64");
-        return graalDownloadUrl
+                ? "windows-amd64"
+                : (graalPlatform.toLowerCase(ROOT).contains("mac")
+                ? "darwin-amd64"
+                : "linux-amd64");
+
+        // backward compat
+        String baseUrl = "auto".equals(graalDownloadUrl) ?
+                "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${graalSimpleVersion}/graalvm-ce-java${graalJavaVersion}-${githubPlatform}-${graalSimpleVersion}.tar.gz" :
+                graalDownloadUrl;
+        if (graalVersion.endsWith("-graalce")) {
+            graalJavaVersion = graalVersion.substring(0, graalVersion.length() - "-graalce".length());
+            baseUrl = "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-" + graalJavaVersion + "/graalvm-community-jdk-" + graalJavaVersion + "_${githubPlatform2}_bin.tar.gz";
+        } else if (graalVersion.endsWith("-graal-oracle")) {
+            graalJavaVersion = graalVersion.substring(0, graalVersion.length() - "-graal-oracle".length());
+            baseUrl = "https://download.oracle.com/graalvm/" + graalJavaVersion + "/latest/graalvm-jdk-" + graalJavaVersion + "_${githubPlatform2}_bin.tar.gz";
+        }
+        return baseUrl
                 .replace("${graalSimpleVersion}", graalSimpleVersion)
                 .replace("${graalJavaVersion}", graalJavaVersion)
-                .replace("${githubPlatform}", githubPlatform);
+                .replace("${githubPlatform}", githubPlatform)
+                .replace("${githubPlatform2}", githubPlatform.replace("amd64", "x64"));
     }
 
     private String buildPlatform() {

@@ -16,10 +16,9 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.installer;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonMap;
-import static java.util.Comparator.comparing;
-import static java.util.Objects.requireNonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.geronimo.arthur.impl.nativeimage.process.ProcessExecutor;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -28,12 +27,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.stream.Stream;
 
-import org.apache.geronimo.arthur.impl.nativeimage.process.ProcessExecutor;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
+import static java.util.Comparator.comparing;
+import static java.util.Objects.requireNonNull;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -84,7 +84,7 @@ public class SdkmanGraalVMInstaller {
         final Path bin = requireNonNull(this.home, "No home, ensure to call install() before installNativeImage()")
                 .resolve("bin");
         try {
-            if (findNativeImage(bin).count() == 0) { // likely only UNIx, windows comes with native-image.cmd
+            if (!findNativeImage(bin).isPresent()) { // likely only UNIx, windows comes with native-image.cmd
                 log.info("Installing native-image");
                 new ProcessExecutor(
                         configuration.isInheritIO(), asList(findGu(bin).toAbsolutePath().toString(), "install", "native-image"),
@@ -93,20 +93,24 @@ public class SdkmanGraalVMInstaller {
                 log.debug("native-image is already available");
             }
             return findNativeImage(bin)
-                    .min(comparing(p -> p.getFileName().toString().length())) // support windows this way (.cmd)
                     .orElseThrow(() -> new IllegalArgumentException("No native-image found in " + bin));
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    private Stream<Path> findNativeImage(final Path bin) throws IOException {
-        return Files.list(bin).filter(path -> path.getFileName().toString().startsWith("native-image"));
+    private Optional<Path> findNativeImage(final Path bin) throws IOException {
+        try (final Stream<Path> list = Files.list(bin)) {
+            return list.filter(path -> {
+                final String name = path.getFileName().toString();
+                return name.equals("native-image") || name.startsWith("native-image.") /*win*/;
+            }).min(comparing(p -> p.getFileName().toString().length())); // support windows this way (.cmd);
+        }
     }
 
     private Path findGu(final Path bin) {
-        try {
-            return Files.list(bin)
+        try (final Stream<Path> list = Files.list(bin)) {
+            return list
                     .filter(path -> path.getFileName().toString().startsWith("gu"))
                     .min(comparing(p -> p.getFileName().toString().length()))
                     .orElseThrow(() -> new IllegalStateException("No gu found in " + bin));

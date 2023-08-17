@@ -49,6 +49,22 @@ You will find all the details of that feature in the configuration section but i
 2. GraalVM version is configurable (note that it relies on SDKMan by default so ensure the last version you want to upgrade immediately is available),
 3. The plugin caches the GraalVM archive and its unpack flavor in your local maven repository to avoid to download and explode it each time.
 
+=== Tip on graalVersion
+
+Apache Arthur is able to deduce the download URL of Graal distribution if it is not explicit configured from `graalVersion`.
+This enables to avoid to handle the platform with profiles in your own build.
+Here are the supported download flavors:
+
+* If a download URL is set starting with `https://api.sdkman.io/2/broker/download/java/` it will be used (SDKMan). Note that SDKMan does not guanratee your version will be resolvable after some time so good for tests mainly. `graalVersion` is the SDKMan version,
+* Else by default we use `https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${graalSimpleVersion}/graalvm-ce-java${graalJavaVersion}-${githubPlatform}-${graalSimpleVersion}.tar.gz`. `graalVersion` is `$graalVersion.r$mainJavaVersion`, ex: `22.0.3.r17`,
+* Else if `graalVersion` is `$javaVersion-graalce` we use `https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-$javaVersion/graalvm-community-jdk-$javaVersion_${githubPlatform2}_bin.tar.gz`,
+* Else if `graalVersion` is `$javaVersion-graal-oracle` we use `https://download.oracle.com/graalvm/$javaVersion/latest/graalvm-jdk-$javaVersion_${githubPlatform2}_bin.tar.gz`,
+* Else we use the provided download url which can use the following placeholders:
+** `graalSimpleVersion`: if there is a `.r$javaVersion` at the end of the `graalVersion` it is the version without this suffix else `graalVersion`,
+** `graalJavaVersion`: `graalVersion` sanitized from its suffix (`.r$javaVersion`, `-graalce`, `-graal-oracle`),
+** `githubPlatform`: platform deduced from the running JVM one (build one), it ends with `-amd64`,
+** `githubPlatform2`: platform deduced from the running JVM one (build one), it ends with `-x64` - `graalce`/`graal-oracle` cases.
+
 == Execution example
 
 Here is a dump of a sample execution:

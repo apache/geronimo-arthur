@@ -16,18 +16,25 @@
  */
 package org.apache.geronimo.arthur.documentation.command;
 
-import static java.util.Comparator.comparing;
-import static java.util.Locale.ROOT;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.joining;
-import static org.asciidoctor.SafeMode.UNSAFE;
+import org.apache.geronimo.arthur.documentation.download.Downloads;
+import org.apache.geronimo.arthur.documentation.io.FolderConfiguration;
+import org.apache.geronimo.arthur.documentation.io.FolderVisitor;
+import org.apache.geronimo.arthur.documentation.mojo.MojoParser;
+import org.apache.geronimo.arthur.documentation.renderer.AsciidocRenderer;
+import org.apache.geronimo.arthur.documentation.renderer.TemplateConfiguration;
+import org.asciidoctor.Attributes;
+import org.asciidoctor.Options;
+import org.tomitribe.crest.api.Command;
+import org.tomitribe.crest.api.Default;
+import org.tomitribe.crest.api.Defaults.DefaultMapping;
+import org.tomitribe.crest.api.Err;
+import org.tomitribe.crest.api.Option;
+import org.tomitribe.crest.api.Out;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -53,22 +60,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
-import org.apache.geronimo.arthur.documentation.download.Downloads;
-import org.apache.geronimo.arthur.documentation.io.FolderConfiguration;
-import org.apache.geronimo.arthur.documentation.io.FolderVisitor;
-import org.apache.geronimo.arthur.documentation.mojo.MojoParser;
-import org.apache.geronimo.arthur.documentation.renderer.AsciidocRenderer;
-import org.apache.geronimo.arthur.documentation.renderer.TemplateConfiguration;
-import org.asciidoctor.AttributesBuilder;
-import org.asciidoctor.Options;
-import org.asciidoctor.OptionsBuilder;
-import org.tomitribe.crest.api.Command;
-import org.tomitribe.crest.api.Default;
-import org.tomitribe.crest.api.Defaults.DefaultMapping;
-import org.tomitribe.crest.api.Err;
-import org.tomitribe.crest.api.Option;
-import org.tomitribe.crest.api.Out;
+import static java.util.Comparator.comparing;
+import static java.util.Locale.ROOT;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.joining;
+import static org.asciidoctor.SafeMode.UNSAFE;
 
 public class Generate {
     @Command
@@ -126,13 +125,14 @@ public class Generate {
             return computedTemplatization.get();
         };
 
-        final Options adocOptions = OptionsBuilder.options()
+        final Options adocOptions = Options.builder()
                 .safe(UNSAFE) // we generated_dir is not safe but locally it is ok
-                .attributes(AttributesBuilder.attributes()
-                    .showTitle(true)
-                    .icons("font")
-                    .attribute("generated_dir", workdir.toAbsolutePath().toString()))
-                .get();
+                .attributes(Attributes.builder()
+                        .showTitle(true)
+                        .icons("font")
+                        .attribute("generated_dir", workdir.toAbsolutePath().toString())
+                        .build())
+                .build();
 
         final CountDownLatch downloadLatch;
         if (downloadSource != null) {
@@ -197,8 +197,8 @@ public class Generate {
                             Files.write(
                                     target,
                                     templatize.get().apply(
-                                            metadata.getOrDefault("title", "Arthur"),
-                                            renderer.render(read, adocOptions))
+                                                    metadata.getOrDefault("title", "Arthur"),
+                                                    renderer.render(read, adocOptions))
                                             .getBytes(StandardCharsets.UTF_8),
                                     StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
                         } catch (final IOException e) {
@@ -271,9 +271,9 @@ public class Generate {
                     "|===\n" +
                     "|Name|Type|Description\n\n" +
                     parameters.stream()
-                        .sorted(comparing(MojoParser.Parameter::getName))
-                        .map(this::toLine)
-                        .collect(joining("\n\n")) +
+                            .sorted(comparing(MojoParser.Parameter::getName))
+                            .map(this::toLine)
+                            .collect(joining("\n\n")) +
                     "\n|===\n");
         }
         stdout.println("Generated documentation for " + mojo);
@@ -288,8 +288,8 @@ public class Generate {
     }
 
     private String read(final Path file) {
-        try {
-            return Files.lines(file).collect(joining("\n"));
+        try (final Stream<String> lines = Files.lines(file)) {
+            return lines.collect(joining("\n"));
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
