@@ -33,6 +33,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -70,10 +71,9 @@ public class Downloads {
                 .map(v -> v.extensions("zip"))
                 .map(v -> v.classifiers("source-release"))
                 .flatMap(this::toDownloadable)
-                .parallel()
                 .map(this::fillDownloadable)
                 .filter(Objects::nonNull)
-                .sorted(this::compareVersions)
+                .sorted(Comparator.<Download, Instant>comparing(it -> it.date).reversed())
                 .map(it -> toDownloadLine(dateFormatter, it))
                 .forEach(stream::println);
         stream.println("|===\n");
@@ -89,51 +89,6 @@ public class Downloads {
                 "|" + d.url.replace(ASF_RELEASE_BASE, MVN_BASE) + "[icon:download[] " + d.format + "] " +
                 (d.sha512 != null ? d.sha512 + "[icon:download[] sha512] " : d.sha1 + "[icon:download[] sha1] ") +
                 d.asc + "[icon:download[] asc]";
-    }
-
-    private int compareVersions(final Download o1, final Download o2) {
-        final int versionComp = o2.version.compareTo(o1.version);
-        if (versionComp != 0) {
-            if (o2.version.startsWith(o1.version) && o2.version.contains("-M")) { // milestone
-                return -1;
-            }
-            if (o1.version.startsWith(o2.version) && o1.version.contains("-M")) { // milestone
-                return 1;
-            }
-
-            final String[] v1 = o1.version.split("\\.");
-            final String[] v2 = o2.version.split("\\.");
-            for (int i = 0; i < Math.max(v1.length, v2.length); i++) {
-                if (v1.length == i) {
-                    return 1;
-                }
-                if (v2.length == i) {
-                    return -1;
-                }
-                try {
-                    final int diff = Integer.parseInt(v2[i]) - Integer.parseInt(v1[i]);
-                    if (diff != 0) {
-                        return diff;
-                    }
-                } catch (final NumberFormatException nfe) {
-                    break; // use plain string comparison
-                }
-            }
-
-            return versionComp;
-        }
-
-        final int nameComp = o1.name.compareTo(o2.name);
-        if (nameComp != 0) {
-            return nameComp;
-        }
-
-        final long dateComp = o2.date.compareTo(o1.date);
-        if (dateComp != 0) {
-            return (int) dateComp;
-        }
-
-        return o1.url.compareTo(o2.url);
     }
 
     private void printHeader(final PrintStream stream) {
