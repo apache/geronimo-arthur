@@ -28,7 +28,7 @@
   <packaging>maven-plugin</packaging>
 
   <properties>
-    <mvn.version>3.6.3</mvn.version>
+    <mvn.version>3.8.1</mvn.version>
     <mvn-plugin.version>3.6.0</mvn-plugin.version>
     <geronimo-arthur.shortname>maven</geronimo-arthur.shortname>
   </properties>
