@@ -16,15 +16,15 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import lombok.Data;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import lombok.Data;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 @Data
 public class ArthurNativeImageConfiguration {
@@ -76,12 +76,14 @@ public class ArthurNativeImageConfiguration {
     @GraalCommandPart(order = 16, template = "--static")
     private boolean buildStaticImage = true;
 
+    @Deprecated
     @GraalCommandPart(order = 17, template = "--allow-incomplete-classpath")
     private Boolean allowIncompleteClasspath; // recent version make it a default
 
     @GraalCommandPart(order = 18, template = "--report-unsupported-elements-at-runtime")
     private boolean reportUnsupportedElementsAtRuntime = true;
 
+    @Deprecated
     @GraalCommandPart(order = 19, template = "--enable-all-security-services")
     private Boolean enableAllSecurityServices = null;
 
@@ -97,17 +99,40 @@ public class ArthurNativeImageConfiguration {
     private boolean inheritIO = true;
 
     /**
-     * @param graalVersion the graalvm version used to complete this configuration, in particular allowIncompleteClasspath and enableAllSecurityServices.
+     * @param graalVersion         the graalvm version used to complete this configuration, in particular allowIncompleteClasspath and enableAllSecurityServices.
+     * @param hasEmbeddedResources are some META-INF/native-image/ files present.
      */
-    public void complete(final String graalVersion) {
+    public void complete(final String graalVersion, final boolean hasEmbeddedResources) {
         if (graalVersion != null && (graalVersion.startsWith("21.") || graalVersion.startsWith("20."))) {
             if (allowIncompleteClasspath == null) {
-                allowIncompleteClasspath = true;
+                allowIncompleteClasspath = !graalVersion.contains("-graal"); // 21*graal* needs it false, previous 21 needs it true :facepalm:
             }
             if (enableAllSecurityServices == null) {
-                enableAllSecurityServices = true;
+                enableAllSecurityServices = !graalVersion.contains("-graal"); // 21*graal* needs it false, previous 21 needs it true :facepalm:
             }
+        } else {
+            // /!\ we disable this flag since recent graalvm versions don't need it anymore
+            allowIncompleteClasspath = false;
+            enableAllSecurityServices = false;
         }
+        if (!Boolean.getBoolean("arthur.unlockexperimentalvmoptions.skip") &&
+                (customOptions == null ||
+                        (!customOptions.contains("-H:+UnlockExperimentalVMOptions") && !customOptions.contains("-H:-UnlockExperimentalVMOptions"))) &&
+                hasEmbeddedResources) {
+            if (customOptions == null) {
+                customOptions = new ArrayList<>();
+            }
+            customOptions.add("-H:+UnlockExperimentalVMOptions");
+        }
+    }
+
+    /**
+     * @param graalVersion the graalvm version used to complete this configuration, in particular allowIncompleteClasspath and enableAllSecurityServices.
+     * @deprecated use {@link #complete(String, boolean)}.
+     */
+    @Deprecated
+    public void complete(final String graalVersion) {
+        complete(graalVersion, false);
     }
 
     public enum FallbackMode {

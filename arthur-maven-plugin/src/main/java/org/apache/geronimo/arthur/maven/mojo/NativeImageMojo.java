@@ -73,8 +73,10 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import java.util.zip.ZipEntry;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static java.util.Comparator.comparing;
@@ -190,6 +192,7 @@ public class NativeImageMojo extends ArthurMojo {
     /**
      * Should incomplete classpath be tolerated.
      */
+    @Deprecated
     @Parameter(property = "arthur.allowIncompleteClasspath")
     private Boolean allowIncompleteClasspath;
 
@@ -202,6 +205,7 @@ public class NativeImageMojo extends ArthurMojo {
     /**
      * Should security services be included.
      */
+    @Deprecated
     @Parameter(property = "arthur.enableAllSecurityServices")
     private Boolean enableAllSecurityServices;
 
@@ -390,7 +394,21 @@ public class NativeImageMojo extends ArthurMojo {
         final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
 
         final ArthurNativeImageConfiguration configuration = getConfiguration(classpathEntries.values());
-        configuration.complete(graalVersion);
+        configuration.complete(graalVersion, classpathEntries.values().stream()
+                .anyMatch(p -> {
+                    if (Files.isDirectory(p)) {
+                        return Files.exists(p.resolve("META-INF/native-image"));
+                    }
+                    if (Files.exists(p)) {
+                        try (final JarFile jar = new JarFile(p.toFile())) {
+                            final ZipEntry entry = jar.getEntry("META-INF/native-image");
+                            return entry != null && entry.isDirectory();
+                        } catch (final IOException e) {
+                            return false;
+                        }
+                    }
+                    return false;
+                }));
 
         if (nativeImage == null) {
             final SdkmanGraalVMInstaller graalInstaller = createInstaller();
@@ -481,10 +499,10 @@ public class NativeImageMojo extends ArthurMojo {
                         @Override
                         protected Iterable<ArthurExtension> loadExtensions() {
                             return Stream.concat(
-                                    // classloading bypasses them since TCCL is a fake loader with the JVM as parent
-                                    Stream.of(new AnnotationExtension(), new MavenArthurExtension()),
-                                    // graalextensions
-                                    StreamSupport.stream(super.loadExtensions().spliterator(), false))
+                                            // classloading bypasses them since TCCL is a fake loader with the JVM as parent
+                                            Stream.of(new AnnotationExtension(), new MavenArthurExtension()),
+                                            // graalextensions
+                                            StreamSupport.stream(super.loadExtensions().spliterator(), false))
                                     // ensure we dont duplicate any extension
                                     .distinct()
                                     .sorted(comparing(ArthurExtension::order))
@@ -547,22 +565,22 @@ public class NativeImageMojo extends ArthurMojo {
         final Artifact artifactGav = new org.apache.maven.artifact.DefaultArtifact(
                 groupId, artifactId, version, "compile", packaging, null, new DefaultArtifactHandler());
         return Stream.concat(Stream.concat(
-                usePackagedArtifact ?
-                        Stream.of(jar).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())) :
-                        Stream.concat(
-                                Stream.of(classes).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())),
-                                supportTestArtifacts ? Stream.of(testClasses).<Map.Entry<Artifact, Path>>map(j ->
-                                        new AbstractMap.SimpleImmutableEntry<>(new org.apache.maven.artifact.DefaultArtifact(
-                                                groupId, artifactId, version, "compile", packaging, "test", new DefaultArtifactHandler()),
-                                                j.toPath())) :
-                                        Stream.empty()),
-                project.getArtifacts().stream()
-                        .filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId()))
-                        .filter(this::handleTestInclusion)
-                        .filter(this::isNotSvm)
-                        .filter(a -> supportedTypes.contains(a.getType()))
-                        .map(a -> new AbstractMap.SimpleImmutableEntry<>(a, a.getFile().toPath()))),
-                resolveExtension())
+                                usePackagedArtifact ?
+                                        Stream.of(jar).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())) :
+                                        Stream.concat(
+                                                Stream.of(classes).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())),
+                                                supportTestArtifacts ? Stream.of(testClasses).<Map.Entry<Artifact, Path>>map(j ->
+                                                        new AbstractMap.SimpleImmutableEntry<>(new org.apache.maven.artifact.DefaultArtifact(
+                                                                groupId, artifactId, version, "compile", packaging, "test", new DefaultArtifactHandler()),
+                                                                j.toPath())) :
+                                                        Stream.empty()),
+                                project.getArtifacts().stream()
+                                        .filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId()))
+                                        .filter(this::handleTestInclusion)
+                                        .filter(this::isNotSvm)
+                                        .filter(a -> supportedTypes.contains(a.getType()))
+                                        .map(a -> new AbstractMap.SimpleImmutableEntry<>(a, a.getFile().toPath()))),
+                        resolveExtension())
                 .filter(e -> Files.exists(e.getValue()));
     }
 
