@@ -77,12 +77,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}.knights</groupId>
-      <artifactId>winegrower-knight</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}.knights</groupId>
       <artifactId>openwebbeans-knight</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

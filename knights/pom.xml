@@ -30,7 +30,6 @@
 
   <modules>
     <module>jsch-knight</module>
-    <module>winegrower-knight</module>
     <module>openwebbeans-knight</module>
     <module>slf4j-knight</module>
     <module>openjpa-knight</module>

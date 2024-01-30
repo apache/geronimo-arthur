@@ -50,10 +50,6 @@ class MavenTest {
     void owb() {}
 
     @Test
-    @Spec(expectedOutput = "Starting org.apache.geronimo.arthur.integrationtests.Application")
-    void scr() {}
-
-    @Test
     @Spec(expectedOutput = "" +
             "[main] INFO org.apache.geronimo.arthur.integrationtests.OpenJPAMain" +
             " - findbyid => root:id=1,name=root_1,children=[child:id=2,name=child_2, child:id=1,name=child_1]\n" +
