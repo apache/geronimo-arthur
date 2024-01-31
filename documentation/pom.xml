@@ -144,9 +144,8 @@
             <argument>--content-location=${project.basedir}/src/content</argument>
             <argument>--static-location=${project.basedir}/src/static</argument>
             <argument>--output=${project.build.directory}/documentation</argument>
-            <!-- only update after a release or run Downloads#main manually
-            <argument>- -download-source=${project.basedir}/src/content/downloads.adoc</argument>
-            -->
+            <!-- only update after a release or run Downloads#main manually-->
+<!--            <argument>&#45;&#45;download-source=${project.basedir}/src/content/downloads.adoc</argument>-->
             <argument>--template-header=${project.basedir}/src/template/header.html</argument>
             <argument>--template-footer=${project.basedir}/src/template/footer.html</argument>
             <argument>--mojo=${doc.mojo.basedir}/DockerMojo.java</argument>
