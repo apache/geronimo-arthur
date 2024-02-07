@@ -207,10 +207,12 @@ public abstract class ArthurMojo extends AbstractMojo {
                 graalDownloadUrl;
         if (graalVersion.endsWith("-graalce")) {
             graalJavaVersion = graalVersion.substring(0, graalVersion.length() - "-graalce".length());
-            baseUrl = "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-" + graalJavaVersion + "/graalvm-community-jdk-" + graalJavaVersion + "_${githubPlatform2}_bin.tar.gz";
+            baseUrl = "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-" + graalJavaVersion + "/graalvm-community-jdk-" + graalJavaVersion + "_${githubPlatform2}_bin." +
+                    (System.getProperty("os.name", "").contains("win") ? "zip" : "tar.gz");
         } else if (graalVersion.endsWith("-graal-oracle")) {
             graalJavaVersion = graalVersion.substring(0, graalVersion.length() - "-graal-oracle".length());
-            baseUrl = "https://download.oracle.com/graalvm/" + graalJavaVersion + "/latest/graalvm-jdk-" + graalJavaVersion + "_${githubPlatform2}_bin.tar.gz";
+            baseUrl = "https://download.oracle.com/graalvm/" + graalJavaVersion + "/latest/graalvm-jdk-" + graalJavaVersion + "_${githubPlatform2}_bin." +
+                    (System.getProperty("os.name", "").contains("win") ? "zip" : "tar.gz");
         }
         return baseUrl
                 .replace("${graalSimpleVersion}", graalSimpleVersion)
