@@ -178,6 +178,21 @@
             <exclude>.site-content/**</exclude>
             <exclude>.m2/**</exclude>
             <exclude>**/*.iml</exclude>
+            <!-- JS files -->
+            <exclude>**/js/jquery.min.js</exclude>
+            <exclude>**/js/bootstrap.min.js</exclude>
+            <exclude>**/js/prettify.min.js</exclude>
+            <!-- CSS files -->
+            <exclude>**/css/bootstrap.min.css</exclude>
+            <exclude>**/css/font-awesome.min.css</exclude>
+            <exclude>**/css/prettify.min.css</exclude>
+            <exclude>**/css/flatly.bootstrap.min.css</exclude>
+            <!-- Font files -->
+            <exclude>**/fonts/fontawesome-webfont.eot</exclude>
+            <exclude>**/fonts/fontawesome-webfont.woff2</exclude>
+            <exclude>**/fonts/fontawesome-webfont.woff</exclude>
+            <exclude>**/fonts/fontawesome-webfont.ttf</exclude>
+            <exclude>**/fonts/fontawesome-webfont.svg</exclude>
           </excludes>
         </configuration>
         <executions>
