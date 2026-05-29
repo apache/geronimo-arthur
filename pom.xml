@@ -37,7 +37,7 @@
     <!-- main deps -->
     <slf4j.version>1.7.36</slf4j.version>
     <ziplock.version>8.0.0</ziplock.version>
-    <common-compress.version>1.24.0</common-compress.version>
+    <common-compress.version>1.26.0</common-compress.version>
 
     <!-- knights -->
     <jsch.version>0.1.55</jsch.version>
