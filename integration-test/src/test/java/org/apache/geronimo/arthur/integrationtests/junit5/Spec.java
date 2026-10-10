@@ -16,8 +16,6 @@
  */
 package org.apache.geronimo.arthur.integrationtests.junit5;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.geronimo.arthur.integrationtests.container.MavenContainer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -31,7 +29,6 @@ import org.junit.platform.commons.util.AnnotationUtils;
 import org.testcontainers.containers.Container.ExecResult;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.MountableFile;
-
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -49,7 +46,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
-
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static java.util.Objects.requireNonNull;
@@ -77,11 +73,9 @@ public @interface Spec {
 
     String[] forwardedExecutionSystemProperties() default {};
 
-    enum ExpectedType {
-        EQUALS(Assertions::assertEquals),
-        EQUALS_TRIMMED((a, b) -> assertEquals(a, b.trim(), b)),
-        MATCHES((a, b) -> assertTrue(a.matches(b), b));
 
+    enum ExpectedType {
+        EQUALS(Assertions::assertEquals), EQUALS_TRIMMED((a, b) -> assertEquals(a, b.trim(), b)), MATCHES((a, b) -> assertTrue(a.matches(b), b));
         private final BiConsumer<String, String> assertFn;
 
         ExpectedType(final BiConsumer<String, String> assertFn) {
@@ -89,10 +83,9 @@ public @interface Spec {
         }
     }
 
-    @Slf4j
-            // todo: make it parallelisable?
+    // todo: make it parallelisable?
     class Impl implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
-
+        private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Impl.class);
         public static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(Impl.class);
 
         @Override
@@ -102,38 +95,29 @@ public @interface Spec {
             if (!specOpt.isPresent()) {
                 return;
             }
-
             final MavenContainer mvn = findContainer(context);
             final Spec spec = specOpt.orElseThrow(IllegalStateException::new);
-
             final ExtensionContext.Store store = context.getStore(NAMESPACE);
             store.put(Spec.class, spec);
             store.put(MavenContainer.class, mvn);
             final Invocation invocation = () -> {
-                final String project = of(spec.project())
-                        .filter(it -> !it.isEmpty())
-                        .orElseGet(() -> "integration-tests/" + context.getRequiredTestMethod().getName());
+                final String project = of(spec.project()).filter(it -> !it.isEmpty()).orElseGet(() -> "integration-tests/" + context.getRequiredTestMethod().getName());
                 final Path root = jarFromResource(project).toPath().resolve(project);
                 final Collection<String> files = copyProject(mvn, root, spec);
                 store.put(CopiedFiles.class, new CopiedFiles(mvn, files));
-
-                log.info("Compiling the project '" + project.substring(project.lastIndexOf('/') + 1) + "'");
-                final ExecResult result = buildAndRun(
-                        mvn, spec.binary().replace("${project.artifactId}", findArtifactId(root.resolve("pom.xml"))),
-                        spec.forwardedExecutionSystemProperties());
+                log.info("Compiling the project \'" + project.substring(project.lastIndexOf('/') + 1) + "\'");
+                final ExecResult result = buildAndRun(mvn, spec.binary().replace("${project.artifactId}", findArtifactId(root.resolve("pom.xml"))), spec.forwardedExecutionSystemProperties());
                 log.info("Exit code: {}", result.getExitCode());
                 log.info("Stdout:\n>{}<", result.getStdout());
                 log.info("Stderr:\n>{}<", result.getStderr());
                 store.put(ExecResult.class, result);
                 assertEquals(spec.exitCode(), result.getExitCode(), () -> result.getStdout() + result.getStderr());
-                spec.expectedType().assertFn.accept(
-                        spec.expectedOutput(),
-                        String.join("\n", result.getStdout(), result.getStderr()).trim());
+                spec.expectedType().assertFn.accept(spec.expectedOutput(), String.join("\n", result.getStdout(), result.getStderr()).trim());
             };
-
             if (Stream.of(method.getParameterTypes()).noneMatch(it -> it == Invocation.class)) {
                 invocation.run();
-            } else { // the test calls it itself since it requires some custom init/destroy
+            } else {
+                // the test calls it itself since it requires some custom init/destroy
                 store.put(Invocation.class, invocation);
             }
         }
@@ -142,19 +126,13 @@ public @interface Spec {
         public void afterEach(final ExtensionContext context) {
             final Optional<CopiedFiles> copiedFiles = ofNullable(context.getStore(NAMESPACE).get(CopiedFiles.class, CopiedFiles.class));
             assertTrue(copiedFiles.isPresent(), "Maven build not executed");
-            copiedFiles
-                    .filter(f -> !f.files.isEmpty())
-                    .ifPresent(this::cleanFolder);
+            copiedFiles.filter(f -> !f.files.isEmpty()).ifPresent(this::cleanFolder);
         }
 
         private String findArtifactId(final Path pom) {
             try {
                 final String start = "  <artifactId>";
-                return Files.lines(pom)
-                        .filter(it -> it.startsWith(start))
-                        .map(it -> it.substring(it.indexOf(start) + start.length(), it.indexOf('<', start.length() + 1)))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("No artifactId found in " + pom));
+                return Files.lines(pom).filter(it -> it.startsWith(start)).map(it -> it.substring(it.indexOf(start) + start.length(), it.indexOf('<', start.length() + 1))).findFirst().orElseThrow(() -> new IllegalArgumentException("No artifactId found in " + pom));
             } catch (final IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -162,10 +140,7 @@ public @interface Spec {
 
         private void cleanFolder(final CopiedFiles files) {
             try {
-                files.mvn.execInContainer(Stream.concat(
-                        Stream.of("rm", "-Rf", "target"),
-                        files.files.stream().map(it -> it.replace("\"", "\\\""))
-                ).toArray(String[]::new));
+                files.mvn.execInContainer(Stream.concat(Stream.of("rm", "-Rf", "target"), files.files.stream().map(it -> it.replace("\"", "\\\""))).toArray(String[]::new));
             } catch (final IOException e) {
                 throw new IllegalStateException(e);
             } catch (final InterruptedException e) {
@@ -175,10 +150,7 @@ public @interface Spec {
 
         private MavenContainer findContainer(ExtensionContext context) throws IllegalAccessException {
             final Object instance = context.getRequiredTestInstance();
-            final Field containerField = AnnotationUtils.findAnnotatedFields(instance.getClass(), Container.class, i -> true).stream()
-                    .filter(it -> MavenContainer.class == it.getType() && Modifier.isStatic(it.getModifiers()))
-                    .findFirst()
-                    .orElseThrow(IllegalStateException::new);
+            final Field containerField = AnnotationUtils.findAnnotatedFields(instance.getClass(), Container.class, i -> true).stream().filter(it -> MavenContainer.class == it.getType() && Modifier.isStatic(it.getModifiers())).findFirst().orElseThrow(IllegalStateException::new);
             if (!containerField.isAccessible()) {
                 containerField.setAccessible(true);
             }
@@ -191,13 +163,10 @@ public @interface Spec {
                 Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
                     @Override
                     public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-                        final String target = Paths.get(requireNonNull(mvn.getWorkingDirectory(), "mvn workdir is null"))
-                                .resolve(root.relativize(file)).toString();
-                        mvn.copyFileToContainer(
-                                MountableFile.forHostPath(file),
-                                target);
+                        final String target = Paths.get(requireNonNull(mvn.getWorkingDirectory(), "mvn workdir is null")).resolve(root.relativize(file)).toString();
+                        mvn.copyFileToContainer(MountableFile.forHostPath(file), target);
                         files.add(target);
-                        log.debug("Copied '{}' to container '{}'", file, target);
+                        log.debug("Copied \'{}\' to container \'{}\'", file, target);
                         return super.visitFile(file, attrs);
                     }
                 });
@@ -207,20 +176,14 @@ public @interface Spec {
             return files;
         }
 
-        private ExecResult buildAndRun(final MavenContainer mvn, final String binary,
-                                       final String[] systemProps) {
+        private ExecResult buildAndRun(final MavenContainer mvn, final String binary, final String[] systemProps) {
             try {
                 final ExecResult build = mvn.execInContainer("mvn", "-e", "package", "arthur:native-image");
                 if (log.isDebugEnabled()) {
                     log.debug("Exit status: {}, Output:\n{}", build.getExitCode(), toMvnOutput(build));
                 }
                 assertEquals(0, build.getExitCode(), () -> toMvnOutput(build));
-
-                final String[] command = Stream.concat(
-                        Stream.of(binary),
-                        Stream.of(systemProps).map(it -> "-D" + it + '=' + lookupSystemProperty(it)
-                                .replace("$JAVA_HOME", "/usr/local/openjdk-8")))
-                        .toArray(String[]::new);
+                final String[] command = Stream.concat(Stream.of(binary), Stream.of(systemProps).map(it -> "-D" + it + '=' + lookupSystemProperty(it).replace("$JAVA_HOME", "/usr/local/openjdk-8"))).toArray(String[]::new);
                 return mvn.execInContainer(command);
             } catch (final InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -232,27 +195,19 @@ public @interface Spec {
 
         private String lookupSystemProperty(final String it) {
             switch (it) {
-                case "java.library.path":
-                    return "$JAVA_HOME/jre/lib/amd64";
-                case "javax.net.ssl.trustStore":
-                    return "$JAVA_HOME/jre/lib/security/cacerts";
-                default:
-                    return System.getProperty(it);
+            case "java.library.path": 
+                return "$JAVA_HOME/jre/lib/amd64";
+            case "javax.net.ssl.trustStore": 
+                return "$JAVA_HOME/jre/lib/security/cacerts";
+            default: 
+                return System.getProperty(it);
             }
         }
 
         private String toMvnOutput(final ExecResult mvnResult) {
-            return Stream.of(mvnResult.getStdout(), mvnResult.getStderr())
-                    .map(it -> it
-                            // workaround an issue with mvn/slf4j output through testcontainers
-                            .replace("\n", "")
-                            .replace("[INFO] ", "\n[INFO] ")
-                            .replace("[WARNING] ", "\n[WARNING] ")
-                            .replace("[ERROR] ", "\n[ERROR] ")
-                            .replace("    at", "\n    at")
-                            .replace("Caused by:", "\nCaused by:")
-                            .replace("ms[", "ms\n["))
-                    .collect(joining("\n"));
+            return 
+            // workaround an issue with mvn/slf4j output through testcontainers
+            Stream.of(mvnResult.getStdout(), mvnResult.getStderr()).map(it -> it.replace("\n", "").replace("[INFO] ", "\n[INFO] ").replace("[WARNING] ", "\n[WARNING] ").replace("[ERROR] ", "\n[ERROR] ").replace("    at", "\n    at").replace("Caused by:", "\nCaused by:").replace("ms[", "ms\n[")).collect(joining("\n"));
         }
 
         @Override
@@ -266,10 +221,15 @@ public @interface Spec {
             return extensionContext.getStore(NAMESPACE).get(type, type);
         }
 
-        @RequiredArgsConstructor
+
         private static final class CopiedFiles {
             private final MavenContainer mvn;
             private final Collection<String> files;
+
+            public CopiedFiles(final MavenContainer mvn, final Collection<String> files) {
+                this.mvn = mvn;
+                this.files = files;
+            }
         }
     }
 }

@@ -17,14 +17,11 @@
 package org.apache.geronimo.arthur.maven.extension;
 
 import java.util.Collection;
-
 import org.apache.geronimo.arthur.spi.ArthurExtension;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 import org.apache.geronimo.arthur.spi.model.DynamicProxyModel;
 import org.apache.geronimo.arthur.spi.model.ResourceBundleModel;
 import org.apache.geronimo.arthur.spi.model.ResourceModel;
-
-import lombok.RequiredArgsConstructor;
 
 public class MavenArthurExtension implements ArthurExtension {
     private static final ThreadLocal<Ctx> CONTEXT = new ThreadLocal<>();
@@ -59,11 +56,7 @@ public class MavenArthurExtension implements ArthurExtension {
         return obj != null && MavenArthurExtension.class == obj.getClass();
     }
 
-    public static void with(final Collection<ClassReflectionModel> reflections,
-                            final Collection<ResourceModel> resources,
-                            final Collection<ResourceBundleModel> bundles,
-                            final Collection<DynamicProxyModel> dynamicProxies,
-                            final Runnable task) {
+    public static void with(final Collection<ClassReflectionModel> reflections, final Collection<ResourceModel> resources, final Collection<ResourceBundleModel> bundles, final Collection<DynamicProxyModel> dynamicProxies, final Runnable task) {
         CONTEXT.set(new Ctx(reflections, resources, bundles, dynamicProxies));
         try {
             task.run();
@@ -72,11 +65,18 @@ public class MavenArthurExtension implements ArthurExtension {
         }
     }
 
-    @RequiredArgsConstructor
+
     private static class Ctx {
         private final Collection<ClassReflectionModel> reflections;
         private final Collection<ResourceModel> resources;
         private final Collection<ResourceBundleModel> bundles;
         private final Collection<DynamicProxyModel> dynamicProxies;
+
+        public Ctx(final Collection<ClassReflectionModel> reflections, final Collection<ResourceModel> resources, final Collection<ResourceBundleModel> bundles, final Collection<DynamicProxyModel> dynamicProxies) {
+            this.reflections = reflections;
+            this.resources = resources;
+            this.bundles = bundles;
+            this.dynamicProxies = dynamicProxies;
+        }
     }
 }

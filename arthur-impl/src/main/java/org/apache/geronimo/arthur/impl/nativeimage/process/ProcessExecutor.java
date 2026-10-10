@@ -20,12 +20,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-@RequiredArgsConstructor
 public class ProcessExecutor implements Runnable {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProcessExecutor.class);
     private final boolean inheritIO;
     private final List<String> command;
     private final Map<String, String> env;
@@ -35,7 +31,6 @@ public class ProcessExecutor implements Runnable {
         if (log.isDebugEnabled()) {
             log.debug("Launching {}", command);
         }
-
         Process process = null;
         try {
             final ProcessBuilder builder = new ProcessBuilder(command);
@@ -58,5 +53,11 @@ public class ProcessExecutor implements Runnable {
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    public ProcessExecutor(final boolean inheritIO, final List<String> command, final Map<String, String> env) {
+        this.inheritIO = inheritIO;
+        this.command = command;
+        this.env = env;
     }
 }

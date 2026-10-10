@@ -18,14 +18,11 @@ package org.apache.geronimo.arthur.documentation;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
-import static lombok.AccessLevel.PRIVATE;
-
 import java.beans.PropertyEditorManager;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
-
 import org.apache.geronimo.arthur.documentation.download.Downloads;
 import org.apache.geronimo.arthur.documentation.editor.PathEditor;
 import org.apache.geronimo.arthur.documentation.io.ConsumedPrintStream;
@@ -37,25 +34,19 @@ import org.tomitribe.crest.Main;
 import org.tomitribe.crest.environments.Environment;
 import org.tomitribe.crest.environments.SystemEnvironment;
 
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
 public final class DocumentationGeneratorLauncher {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DocumentationGeneratorLauncher.class);
+
     public static void main(final String[] args) throws Exception {
         System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "32");
-
         final Map<Class<?>, Object> services = createServices().collect(toMap(Object::getClass, identity()));
         final SystemEnvironment env = new SystemEnvironment(services) {
             private final ConsumedPrintStream err = new ConsumedPrintStream(log::error);
             private final ConsumedPrintStream out = new ConsumedPrintStream(log::info);
-
             @Override
             public PrintStream getOutput() {
                 return out;
             }
-
             @Override
             public PrintStream getError() {
                 return err;
@@ -67,27 +58,22 @@ public final class DocumentationGeneratorLauncher {
             new Main().main(env, args);
         } finally {
             // cheap cleanup solution
-            services.values().stream()
-                    .filter(AutoCloseable.class::isInstance)
-                    .map(AutoCloseable.class::cast)
-                    .forEach(it -> {
-                        try {
-                            it.close();
-                        } catch (final Exception e) {
-                            log.error(e.getMessage(), e);
-                        }
-                    });
+            services.values().stream().filter(AutoCloseable.class::isInstance).map(AutoCloseable.class::cast).forEach(it -> {
+                try {
+                    it.close();
+                } catch (final Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+            });
             Environment.ENVIRONMENT_THREAD_LOCAL.remove();
         }
     }
 
     private static Stream<Object> createServices() {
         final PathPredicates predicates = new PathPredicates();
-        return Stream.of(
-                predicates,
-                new AsciidocRenderer(),
-                new FolderVisitor(predicates),
-                new MojoParser(),
-                new Downloads());
+        return Stream.of(predicates, new AsciidocRenderer(), new FolderVisitor(predicates), new MojoParser(), new Downloads());
+    }
+
+    private DocumentationGeneratorLauncher() {
     }
 }

@@ -18,15 +18,14 @@ package org.apache.geronimo.arthur.integrationtests.container;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.exception.NotFoundException;
-import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
-
 import java.util.Optional;
 
-@Slf4j
 public class MavenContainer extends GenericContainer<MavenContainer> {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MavenContainer.class);
+
     public MavenContainer() {
         super(findImage());
         setWorkingDirectory("/opt/geronimo/arthur/integration-test");
@@ -37,33 +36,23 @@ public class MavenContainer extends GenericContainer<MavenContainer> {
     }
 
     private static String findImage() {
-        return Optional.of(System.getProperty("arthur.container.maven.image", "auto"))
-                .filter(it -> !"auto".equals(it))
-                .orElseGet(MavenContainer::getOrCreateAutoBaseImage);
+        return Optional.of(System.getProperty("arthur.container.maven.image", "auto")).filter(it -> !"auto".equals(it)).orElseGet(MavenContainer::getOrCreateAutoBaseImage);
     }
 
     // we can run apt update && apt install -y gcc libc6-dev zlib1g-dev in start() but it is slow so we cache it through an image
     // note: we don't clean the image to be able to reuse it and speed up integration-tests, use -Darthur.container.maven.deleteOnExit=true to auto clean it
     private static String getOrCreateAutoBaseImage() {
-        final String fromImage = System.getProperty("arthur.container.maven.baseimage", "maven:3.6.3-jdk-8-slim");
+        final String fromImage = System.getProperty("arthur.container.maven.baseimage", "maven:3.9.9-eclipse-temurin-8");
         // creating a tag from the source image to ensure we can have multiple test versions (maven/jdk matrix)
         final String tag = fromImage.split(":")[1];
         final String targetImage = "apache/geronimo/arthur/maven-test-base:" + tag;
-
         final DockerClient client = DockerClientFactory.instance().client();
         try {
             client.inspectImageCmd(targetImage).exec();
             return targetImage;
         } catch (final NotFoundException e) {
-            log.info("Didn't find '{}', creating it from '{}'", targetImage, fromImage);
-            return new ImageFromDockerfile(
-                    targetImage, Boolean.getBoolean("arthur.container.maven.deleteOnExit"))
-                    .withDockerfileFromBuilder(builder -> builder.from(fromImage)
-                            .run("apt update && apt install -y gcc g++ libc6-dev zlib1g-dev")
-                            .label("org.apache.geronimo.arthur.environment", "integration-tests")
-                            .label("org.apache.geronimo.arthur.baseImage", fromImage)
-                            .label("org.apache.geronimo.arthur.tag", tag))
-                    .get();
+            log.info("Didn\'t find \'{}\', creating it from \'{}\'", targetImage, fromImage);
+            return new ImageFromDockerfile(targetImage, Boolean.getBoolean("arthur.container.maven.deleteOnExit")).withDockerfileFromBuilder(builder -> builder.from(fromImage).run("apt update && apt install -y gcc g++ libc6-dev zlib1g-dev").label("org.apache.geronimo.arthur.environment", "integration-tests").label("org.apache.geronimo.arthur.baseImage", fromImage).label("org.apache.geronimo.arthur.tag", tag)).get();
         }
     }
 }

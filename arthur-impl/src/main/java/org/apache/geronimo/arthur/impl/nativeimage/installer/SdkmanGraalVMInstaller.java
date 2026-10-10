@@ -16,10 +16,7 @@
  */
 package org.apache.geronimo.arthur.impl.nativeimage.installer;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.geronimo.arthur.impl.nativeimage.process.ProcessExecutor;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,17 +26,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Stream;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 
-@Slf4j
-@RequiredArgsConstructor
 public class SdkmanGraalVMInstaller {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SdkmanGraalVMInstaller.class);
     private final SdkmanGraalVMInstallerConfiguration configuration;
-
     private Path home;
 
     public Path install() {
@@ -54,20 +48,17 @@ public class SdkmanGraalVMInstaller {
                 if (!Files.exists(configuration.getWorkdir())) {
                     Files.createDirectories(configuration.getWorkdir());
                 }
-
                 log.info("Downloading GraalVM {}, this can be long", configuration.getVersion());
                 final Path download = download();
-
                 log.info("Installing GraalVM {}", configuration.getGav());
                 archive = configuration.getInstaller().apply(configuration.getGav(), download);
             } catch (final IOException e) {
-                throw new IllegalStateException("Can't cache graal locally", e);
+                throw new IllegalStateException("Can\'t cache graal locally", e);
             }
         }
         if (!Files.exists(archive)) {
             throw new IllegalStateException("No graal archive available: " + archive);
         }
-
         final Path exploded = archive.getParent().resolve("distribution_exploded");
         if (!Files.isDirectory(exploded)) {
             configuration.getExtractor().accept(archive, exploded);
@@ -81,39 +72,33 @@ public class SdkmanGraalVMInstaller {
     }
 
     public Path installNativeImage() {
-        final Path bin = requireNonNull(this.home, "No home, ensure to call install() before installNativeImage()")
-                .resolve("bin");
+        final Path bin = requireNonNull(this.home, "No home, ensure to call install() before installNativeImage()").resolve("bin");
         try {
-            if (!findNativeImage(bin).isPresent()) { // likely only UNIx, windows comes with native-image.cmd
+            if (!findNativeImage(bin).isPresent()) {
+                // likely only UNIx, windows comes with native-image.cmd
                 log.info("Installing native-image");
-                new ProcessExecutor(
-                        configuration.isInheritIO(), asList(findGu(bin).toAbsolutePath().toString(), "install", "native-image"),
-                        singletonMap("GRAALVM_HOME", home.toString())).run();
+                new ProcessExecutor(configuration.isInheritIO(), asList(findGu(bin).toAbsolutePath().toString(), "install", "native-image"), singletonMap("GRAALVM_HOME", home.toString())).run();
             } else {
                 log.debug("native-image is already available");
             }
-            return findNativeImage(bin)
-                    .orElseThrow(() -> new IllegalArgumentException("No native-image found in " + bin));
+            return findNativeImage(bin).orElseThrow(() -> new IllegalArgumentException("No native-image found in " + bin));
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
     }
 
     private Optional<Path> findNativeImage(final Path bin) throws IOException {
-        try (final Stream<Path> list = Files.list(bin)) {
-            return list.filter(path -> {
+        try (Stream<Path> list = Files.list(bin)) {
+            return  /*win*/list.filter(path -> {
                 final String name = path.getFileName().toString();
-                return name.equals("native-image") || name.startsWith("native-image.") /*win*/;
+                return name.equals("native-image") || name.startsWith("native-image.");
             }).min(comparing(p -> p.getFileName().toString().length())); // support windows this way (.cmd);
         }
     }
 
     private Path findGu(final Path bin) {
-        try (final Stream<Path> list = Files.list(bin)) {
-            return list
-                    .filter(path -> path.getFileName().toString().startsWith("gu"))
-                    .min(comparing(p -> p.getFileName().toString().length()))
-                    .orElseThrow(() -> new IllegalStateException("No gu found in " + bin));
+        try (Stream<Path> list = Files.list(bin)) {
+            return list.filter(path -> path.getFileName().toString().startsWith("gu")).min(comparing(p -> p.getFileName().toString().length())).orElseThrow(() -> new IllegalStateException("No gu found in " + bin));
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
@@ -125,12 +110,11 @@ public class SdkmanGraalVMInstaller {
         if (Files.exists(cache)) {
             return cache;
         }
-
         final URL source = new URL(configuration.getUrl());
         final HttpURLConnection connection = HttpURLConnection.class.cast(source.openConnection());
         connection.setUseCaches(false);
         connection.setInstanceFollowRedirects(true); // sdkman broker redirects on github
-        try (final InputStream stream = new BufferedInputStream(connection.getInputStream())) {
+        try (InputStream stream = new BufferedInputStream(connection.getInputStream())) {
             Files.copy(stream, cache);
         } catch (final IOException ioe) {
             if (Files.exists(cache)) {
@@ -139,5 +123,9 @@ public class SdkmanGraalVMInstaller {
             throw ioe;
         }
         return cache;
+    }
+
+    public SdkmanGraalVMInstaller(final SdkmanGraalVMInstallerConfiguration configuration) {
+        this.configuration = configuration;
     }
 }

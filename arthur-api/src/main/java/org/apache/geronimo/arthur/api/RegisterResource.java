@@ -25,7 +25,18 @@ import java.lang.annotation.Target;
 @Target(TYPE)
 @Retention(RUNTIME)
 public @interface RegisterResource {
+    /**
+     * @deprecated legacy regex resource patterns. Not GraalVM 25 friendly: use {@link #globs()}
+     * (glob-based combined-metadata resource descriptors) instead.
+     */
+    @Deprecated
     String[] patterns() default {};
+
+    /**
+     * Glob resource descriptors (GraalVM 21+/combined metadata), e.g. {@code "config/*.properties"}.
+     * Each glob is registered as-is on modern GraalVM; on legacy GraalVM they are ignored.
+     */
+    String[] globs() default {};
 
     String[] bundles() default {};
 }

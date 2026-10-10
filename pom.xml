@@ -78,13 +78,6 @@
   </profiles>
 
   <dependencies>
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <version>1.18.30</version>
-      <scope>provided</scope>
-    </dependency>
-
     <dependency> <!-- not strictly needed for compile classpath but surefire 3M5 requires its presence -->
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
@@ -178,6 +171,7 @@
             <exclude>.site-content/**</exclude>
             <exclude>.m2/**</exclude>
             <exclude>**/*.iml</exclude>
+            <exclude>.asf.yaml</exclude>
           </excludes>
         </configuration>
         <executions>

@@ -84,6 +84,11 @@ public class AnnotationExtension implements ArthurExtension {
                 .flatMap(clazz -> Stream.of(clazz.getAnnotation(RegisterResource.class)))
                 .collect(toList());
         resources.stream()
+                .flatMap(rr -> Stream.of(rr.globs()))
+                .map(ResourceModel::glob)
+                .distinct()
+                .forEach(context::register);
+        resources.stream()
                 .flatMap(rr -> Stream.of(rr.patterns()))
                 .map(pattern -> {
                     final ResourceModel resourceModel = new ResourceModel();

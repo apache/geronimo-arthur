@@ -22,14 +22,12 @@ import java.util.Hashtable;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
 import org.apache.geronimo.arthur.spi.ArthurExtension;
 import org.apache.geronimo.arthur.spi.model.ClassReflectionModel;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class JschExtension implements ArthurExtension {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JschExtension.class);
+
     @Override
     public void execute(final Context context) {
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
@@ -40,39 +38,28 @@ public class JschExtension implements ArthurExtension {
                 return null;
             }
         };
-
         try {
             final Class<?> jsch = load.apply("com.jcraft.jsch.JSch");
             if (jsch == null) {
                 log.info("JSch no available, skipping");
                 return;
             }
-
             final Field config = jsch.getDeclaredField("config");
             if (!config.isAccessible()) {
                 config.setAccessible(true);
             }
             final Collection<String> values = Hashtable.class.cast(config.get(null)).values();
-
-            values.stream()
-                    .filter(it -> !"com.jcraft.jsch.jcraft.Compression".equalsIgnoreCase(it)) // requires other libs
-                    .map(load)
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .map(clazz -> {
-                        final ClassReflectionModel model = new ClassReflectionModel();
-                        model.setName(clazz.getName());
-                        model.setAllDeclaredConstructors(true);
-                        return model;
-                    })
-                    .forEach(context::register);
-
+            // requires other libs
+            values.stream().filter(it -> !"com.jcraft.jsch.jcraft.Compression".equalsIgnoreCase(it)).map(load).filter(Objects::nonNull).distinct().map(clazz -> {
+                final ClassReflectionModel model = new ClassReflectionModel();
+                model.setName(clazz.getName());
+                model.setAllDeclaredConstructors(true);
+                return model;
+            }).forEach(context::register);
             context.enableAllSecurityServices();
-
-            context.initializeAtBuildTime(
-                    Stream.of(jsch.getName(), jsch.getName() + "$1") // JSch.DEVNULL
-                            .filter(it -> load.apply(it) != null) // tolerate jsch extraction of DEVNULL in a root class
-                    .toArray(String[]::new));
+            context.initializeAtBuildTime( // JSch.DEVNULL
+            // tolerate jsch extraction of DEVNULL in a root class
+            Stream.of(jsch.getName(), jsch.getName() + "$1").filter(it -> load.apply(it) != null).toArray(String[]::new));
         } catch (final Exception ex) {
             throw new IllegalStateException(ex);
         }

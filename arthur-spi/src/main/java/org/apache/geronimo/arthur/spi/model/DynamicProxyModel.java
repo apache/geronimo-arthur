@@ -16,15 +16,29 @@
  */
 package org.apache.geronimo.arthur.spi.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.Collection;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+/**
+ * Describes a dynamic proxy (a set of interfaces) to register into the native image.
+ * <p>
+ * Dynamic proxies are kept in their own {@code proxy-config.json} (GraalVM keeps them out of the
+ * combined {@code reachability-metadata.json}).
+ */
 public class DynamicProxyModel {
     private Collection<String> classes;
+
+    public DynamicProxyModel() {
+    }
+
+    public DynamicProxyModel(final Collection<String> classes) {
+        this.classes = classes;
+    }
+
+    public Collection<String> getClasses() {
+        return classes;
+    }
+
+    public void setClasses(final Collection<String> classes) {
+        this.classes = classes;
+    }
 }

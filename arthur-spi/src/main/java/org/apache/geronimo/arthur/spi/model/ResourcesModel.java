@@ -16,16 +16,38 @@
  */
 package org.apache.geronimo.arthur.spi.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.Collection;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+/**
+ * Aggregates the resources (globs/regex patterns) and resource bundles registered for the native
+ * image (legacy per-type {@code resources.arthur.json} emission, and the modern combined
+ * {@code reachability-metadata.json} {@code resources} section).
+ */
 public class ResourcesModel {
     private Collection<ResourceModel> resources;
     private Collection<ResourceBundleModel> bundles;
+
+    public ResourcesModel() {
+    }
+
+    public ResourcesModel(final Collection<ResourceModel> resources, final Collection<ResourceBundleModel> bundles) {
+        this.resources = resources;
+        this.bundles = bundles;
+    }
+
+    public Collection<ResourceModel> getResources() {
+        return resources;
+    }
+
+    public void setResources(final Collection<ResourceModel> resources) {
+        this.resources = resources;
+    }
+
+    public Collection<ResourceBundleModel> getBundles() {
+        return bundles;
+    }
+
+    public void setBundles(final Collection<ResourceBundleModel> bundles) {
+        this.bundles = bundles;
+    }
 }

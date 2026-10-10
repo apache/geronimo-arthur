@@ -16,13 +16,67 @@
  */
 package org.apache.geronimo.arthur.spi.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Collection;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+/**
+ * Describes a resource bundle to register into the native image.
+ * <p>
+ * GraalVM resource bundles support the modern descriptor
+ * {@code {"name": "pkg.Bundle", "locales": [...], "classNames": [...]}} since the combined
+ * metadata format ({@code reachability-metadata.json}).
+ */
 public class ResourceBundleModel {
+    /**
+     * Fully qualified bundle basename, e.g. {@code "com.example.Messages"}.
+     */
     private String name;
+
+    /**
+     * Optional locales to include for this bundle (a subset of the {@code -H:IncludeLocales}
+     * / image locales).
+     */
+    private Collection<String> locales;
+
+    /**
+     * Optional fully qualified names of resource bundle classes to include directly, bypassing the
+     * basename + locale lookup.
+     */
+    private Collection<String> classNames;
+
+    public ResourceBundleModel() {
+    }
+
+    public ResourceBundleModel(final String name) {
+        this.name = name;
+    }
+
+    public ResourceBundleModel(final String name, final Collection<String> locales, final Collection<String> classNames) {
+        this.name = name;
+        this.locales = locales;
+        this.classNames = classNames;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(final String name) {
+        this.name = name;
+    }
+
+    public Collection<String> getLocales() {
+        return locales;
+    }
+
+    public void setLocales(final Collection<String> locales) {
+        this.locales = locales;
+    }
+
+    public Collection<String> getClassNames() {
+        return classNames;
+    }
+
+    public void setClassNames(final Collection<String> classNames) {
+        this.classNames = classNames;
+    }
 }

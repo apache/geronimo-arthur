@@ -17,7 +17,6 @@
 package org.apache.geronimo.arthur.documentation.io;
 
 import static java.util.Objects.requireNonNull;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -26,17 +25,12 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-
 import org.apache.geronimo.arthur.documentation.lang.PathPredicates;
 
-import lombok.RequiredArgsConstructor;
-
-@RequiredArgsConstructor
 public class FolderVisitor {
     private final PathPredicates predicates;
 
-    public void visit(final FolderConfiguration configuration,
-                      final Consumer<Path> consumer) {
+    public void visit(final FolderConfiguration configuration, final Consumer<Path> consumer) {
         final Path root = requireNonNull(configuration.getLocation(), "Missing location");
         if (Files.exists(root)) {
             final Predicate<Path> filter = predicates.createFilter(configuration.getIncludes(), configuration.getExcludes());
@@ -54,5 +48,9 @@ public class FolderVisitor {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    public FolderVisitor(final PathPredicates predicates) {
+        this.predicates = predicates;
     }
 }
