@@ -64,6 +64,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -334,7 +335,7 @@ public class NativeImageMojo extends ArthurMojo {
             getLog().info("Skipping packaging pom");
             return;
         }
-        final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
+        final Map<Artifact, Path> classpathEntries = findClasspathFiles().collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
         final ArthurNativeImageConfiguration configuration = getConfiguration(classpathEntries.values());
         configuration.complete(graalVersion, classpathEntries.values().stream().anyMatch(p -> {
             if (Files.isDirectory(p)) {
@@ -473,7 +474,11 @@ public class NativeImageMojo extends ArthurMojo {
 
     private Stream<? extends Map.Entry<? extends Artifact, Path>> findClasspathFiles() {
         final Artifact artifactGav = new org.apache.maven.artifact.DefaultArtifact(groupId, artifactId, version, "compile", packaging, null, new DefaultArtifactHandler());
-        return Stream.concat(Stream.concat(usePackagedArtifact ? Stream.of(jar).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())) : Stream.concat(Stream.of(classes).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())), supportTestArtifacts ? Stream.of(testClasses).<Map.Entry<Artifact, Path>>map(j -> new AbstractMap.SimpleImmutableEntry<>(new org.apache.maven.artifact.DefaultArtifact(groupId, artifactId, version, "compile", packaging, "test", new DefaultArtifactHandler()), j.toPath())) : Stream.empty()), project.getArtifacts().stream().filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId())).filter(this::handleTestInclusion).filter(this::isNotSvm).filter(a -> supportedTypes.contains(a.getType())).map(a -> new AbstractMap.SimpleImmutableEntry<>(a, a.getFile().toPath()))), resolveExtension()).filter(e -> Files.exists(e.getValue()));
+        // Project dependencies have already been resolved. Knights supplement that
+        // classpath rather than reintroducing conflicting versions of its libraries.
+        return Stream.concat(Stream.concat(usePackagedArtifact ? Stream.of(jar).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())) : Stream.concat(Stream.of(classes).map(j -> new AbstractMap.SimpleImmutableEntry<>(artifactGav, j.toPath())), supportTestArtifacts ? Stream.of(testClasses).<Map.Entry<Artifact, Path>>map(j -> new AbstractMap.SimpleImmutableEntry<>(new org.apache.maven.artifact.DefaultArtifact(groupId, artifactId, version, "compile", packaging, "test", new DefaultArtifactHandler()), j.toPath())) : Stream.empty()), project.getArtifacts().stream().filter(a -> !excludedArtifacts.contains(a.getGroupId() + ':' + a.getArtifactId())).filter(this::handleTestInclusion).filter(this::isNotSvm).filter(a -> supportedTypes.contains(a.getType())).map(a -> new AbstractMap.SimpleImmutableEntry<>(a, a.getFile().toPath()))), resolveExtension()).filter(e -> Files.exists(e.getValue()))
+                .collect(toMap(e -> e.getKey().getDependencyConflictId(), Function.identity(), (first, ignored) -> first, LinkedHashMap::new))
+                .values().stream();
     }
 
     private boolean handleTestInclusion(final Artifact a) {
